@@ -6,6 +6,9 @@ out/
 !.env.example
 *.log
 coverage/
+.data/
+.playwright-cli/
+output/playwright/
 *.tsbuildinfo
 .android-build/
 /.env.local

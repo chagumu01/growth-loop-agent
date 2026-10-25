@@ -36,6 +36,7 @@ import { demoSeed, initialTasks, type Goal, type Task, type TaskKind, weeklyBars
 import type { QuizGrade, QuizQuestion } from "@/lib/agent/quiz";
 import type { CourseLesson } from "@/lib/learning-program/types";
 import LearningStudio from "./learning-studio";
+import Link from "next/link";
 import MobileAppShell, { type MobileTab } from "./mobile-shell";
 
 type Tab = MobileTab;
@@ -570,7 +571,7 @@ export default function Home() {
           ) : activeTab === "计划" ? (
             <PlanPanel tasks={tasks} onToggleTask={toggleTask} onSplitGoal={splitGoal} onBackToToday={() => setActiveTab("今日")} />
           ) : activeTab === "记录" ? (
-            <RecordsPanel logs={logs} input={input} setInput={setInput} inputRef={quickLogRef} onSubmit={submitLog} onGenerateQuiz={(log) => generateQuiz(log.text, log.topic, log.output, log.id, true)} onBackToToday={() => setActiveTab("今日")} />
+            <><Link href="/memory" className="quiet-button">学习记忆 · 检索与来源</Link><RecordsPanel logs={logs} input={input} setInput={setInput} inputRef={quickLogRef} onSubmit={submitLog} onGenerateQuiz={(log) => generateQuiz(log.text, log.topic, log.output, log.id, true)} onBackToToday={() => setActiveTab("今日")} /></>
           ) : activeTab === "课程" ? (
             <LearningStudio onBack={() => setActiveTab("计划")} onAddLesson={addCourseLessonToToday} />
           ) : (

@@ -2,12 +2,15 @@
   "name": "growth-loop-agent",
   "version": "0.2.0-prototype",
   "private": true,
+  "engines": { "node": ">=22.13.0" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "memory:test": "tsx --test lib/memory/memory.test.ts",
+    "memory:smoke": "node scripts/memory-smoke.mjs",
     "learning:smoke": "node scripts/learning-program-smoke.mjs",
     "android:status": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/android-emulator.ps1 -Action status",
     "android:debug": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/android-emulator.ps1 -Action run -Build",
@@ -31,6 +34,7 @@
     "@types/react-dom": "19.2.4",
     "eslint": "9.17.0",
     "eslint-config-next": "16.3.0",
+    "tsx": "^4.23.15",
     "typescript": "5.7.2"
   }
 }
