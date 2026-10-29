@@ -1,0 +1,1186 @@
+{
+  "version": "2026-10-28.v1",
+  "dataPolicy": "Synthetic fixtures only; pending capabilities never count as passed.",
+  "cases": [
+    {
+      "id": "agent-status",
+      "category": "configuration",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "read configuration status"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            }
+          ],
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "id": "learning-record",
+      "category": "record",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.intent",
+              "equals": "quick_log"
+            },
+            {
+              "path": "body.extracted.kind",
+              "equals": "learn"
+            },
+            {
+              "path": "body.extracted.topic",
+              "equals": "微积分"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 25
+            },
+            {
+              "path": "body.extracted.output",
+              "equals": "解释导数的定义"
+            },
+            {
+              "path": "body.extracted.missing",
+              "equals": []
+            }
+          ],
+          "body": {
+            "message": "今天学习了微积分25分钟，输出：解释导数的定义",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "exercise-record",
+      "category": "record",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.kind",
+              "equals": "exercise"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 20
+            }
+          ],
+          "body": {
+            "message": "今天跑步20分钟",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rest-record",
+      "category": "record",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.kind",
+              "equals": "rest"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 10
+            }
+          ],
+          "body": {
+            "message": "今天午睡10分钟",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "life-record",
+      "category": "record",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.kind",
+              "equals": "life"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 15
+            }
+          ],
+          "body": {
+            "message": "今天整理房间15分钟",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "plan-intent",
+      "category": "plan",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.intent",
+              "equals": "plan_today"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 30
+            },
+            {
+              "path": "body.extracted.output",
+              "equals": "完成一道例题"
+            }
+          ],
+          "body": {
+            "message": "计划学习微积分30分钟，输出：完成一道例题",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-intent",
+      "category": "review",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.intent",
+              "equals": "review"
+            }
+          ],
+          "body": {
+            "message": "今晚回顾",
+            "conversationId": "$session:a",
+            "context": "合成记录：今天完成一道微积分例题。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ambiguous-record",
+      "category": "ambiguity",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.intent",
+              "equals": "quick_log"
+            },
+            {
+              "path": "body.extracted.missing",
+              "contains": "结果记录"
+            }
+          ],
+          "body": {
+            "message": "今天做了一点",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "plan-missing-duration",
+      "category": "ambiguity",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.intent",
+              "equals": "plan_today"
+            },
+            {
+              "path": "body.extracted.missing",
+              "contains": "时长"
+            }
+          ],
+          "body": {
+            "message": "计划学习微积分",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "explicit-output",
+      "category": "record",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.output",
+              "equals": "能解释导数"
+            },
+            {
+              "path": "body.extracted.missing",
+              "equals": []
+            }
+          ],
+          "body": {
+            "message": "今天学习了微积分",
+            "conversationId": "$session:a",
+            "output": "能解释导数"
+          }
+        }
+      ]
+    },
+    {
+      "id": "correction-retains-evidence",
+      "category": "conversation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 25
+            }
+          ],
+          "body": {
+            "message": "今天学习了微积分25分钟，输出：解释导数",
+            "conversationId": "$session:a"
+          }
+        },
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.intent",
+              "equals": "quick_log"
+            },
+            {
+              "path": "body.extracted.corrected",
+              "equals": true
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 40
+            },
+            {
+              "path": "body.extracted.topic",
+              "equals": "线性代数"
+            },
+            {
+              "path": "body.extracted.output",
+              "equals": "解释导数"
+            }
+          ],
+          "body": {
+            "message": "更正上一条，不是微积分，而是线性代数40分钟",
+            "conversationId": "$session:a"
+          }
+        }
+      ]
+    },
+    {
+      "id": "conversation-separation-not-auth",
+      "category": "conversation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "parse input",
+        "update in-process conversation state"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "equals": 25
+            }
+          ],
+          "body": {
+            "message": "今天学习了微积分25分钟，输出：解释导数",
+            "conversationId": "$session:a"
+          }
+        },
+        {
+          "path": "/api/agent",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.extracted.minutes",
+              "absent": true
+            },
+            {
+              "path": "body.extracted.output",
+              "absent": true
+            }
+          ],
+          "body": {
+            "message": "更正上一条，改成线性代数",
+            "conversationId": "$session:b"
+          }
+        }
+      ]
+    },
+    {
+      "id": "array-body",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "body": [],
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "request body must be an object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "empty-message",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "body": {
+            "message": "  "
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "message is required"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "numeric-message",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "body": {
+            "message": 123
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "message must be a string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invalid-output",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "body": {
+            "message": "学习微积分",
+            "output": 1
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "output must be a string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invalid-context",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "body": {
+            "message": "学习微积分",
+            "context": false
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "context must be a string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invalid-json",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/agent",
+          "rawBody": "{",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "invalid JSON body"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quiz-feedback",
+      "category": "quiz",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "generate quiz",
+        "grade synthetic answers without saving"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/quiz",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "$mode"
+            },
+            {
+              "path": "body.questions",
+              "length": 3
+            }
+          ],
+          "body": {
+            "action": "generate",
+            "topic": "导数",
+            "content": "导数描述函数在一点附近的瞬时变化率。",
+            "output": "能用速度举例。"
+          },
+          "capture": "quiz"
+        },
+        {
+          "path": "/api/quiz",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.gradedBy",
+              "equals": "$grading"
+            },
+            {
+              "path": "body.score",
+              "min": 0,
+              "max": 100
+            },
+            {
+              "path": "body.feedback",
+              "length": 3
+            }
+          ],
+          "body": {
+            "action": "grade",
+            "quizId": {
+              "$ref": "quiz.quizId"
+            },
+            "topic": {
+              "$ref": "quiz.topic"
+            },
+            "source": {
+              "$ref": "quiz.sourceSummary"
+            },
+            "questions": {
+              "$ref": "quiz.questions"
+            },
+            "answers": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "quiz-invalid-action",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/quiz",
+          "body": {
+            "action": "delete"
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "equals": "action must be generate or grade"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "course-tutor-feedback",
+      "category": "course",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "generate course",
+        "tutor",
+        "grade synthetic answers without saving"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/learning-program",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.program.mode",
+              "equals": "$grading"
+            },
+            {
+              "path": "body.program.lessons",
+              "length": 3
+            },
+            {
+              "path": "body.program.lessons.0.questions",
+              "length": 3
+            }
+          ],
+          "body": {
+            "action": "generate",
+            "subject": "微积分入门",
+            "goal": "能用导数解释瞬时速度",
+            "background": "会基础代数",
+            "weeklyHours": 2,
+            "lessonCount": 3
+          },
+          "capture": "course"
+        },
+        {
+          "path": "/api/learning-program",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.reply.mode",
+              "equals": "$grading"
+            }
+          ],
+          "body": {
+            "action": "tutor",
+            "course": {
+              "$ref": "course.program"
+            },
+            "lessonId": {
+              "$ref": "course.program.lessons.0.id"
+            },
+            "message": "请用速度举例说明。"
+          }
+        },
+        {
+          "path": "/api/learning-program",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.grade.gradedBy",
+              "equals": "$grading"
+            },
+            {
+              "path": "body.grade.score",
+              "min": 0,
+              "max": 100
+            },
+            {
+              "path": "body.grade.feedback",
+              "length": 3
+            }
+          ],
+          "body": {
+            "action": "grade",
+            "course": {
+              "$ref": "course.program"
+            },
+            "lessonId": {
+              "$ref": "course.program.lessons.0.id"
+            },
+            "answers": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "course-missing-subject",
+      "category": "validation",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "reject invalid input"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/learning-program",
+          "body": {
+            "action": "generate",
+            "goal": "理解导数"
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 400
+            },
+            {
+              "path": "body.error",
+              "contains": "学习主题"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "demo-seed",
+      "category": "read",
+      "capability": "implemented",
+      "initialData": {
+        "conversation": "fresh unless established by earlier steps",
+        "database": "new temporary path, never personal storage"
+      },
+      "allowedOperations": [
+        "read deterministic demo seed"
+      ],
+      "expectedBusinessState": "Only response and conversation continuity verified; persistent business writes are not available in this baseline.",
+      "steps": [
+        {
+          "path": "/api/demo",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.mode",
+              "equals": "seeded-demo"
+            },
+            {
+              "path": "body.seedVersion",
+              "equals": "2026-08-10.v2"
+            }
+          ],
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "id": "plan-query",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 8,
+      "reason": "当前只有计划意图和演示种子，没有查询本人日期范围任务的工具。",
+      "expectedBusinessState": "返回本人日期范围内持久化任务",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "查询我明天的计划"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "review-scheduling",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 8,
+      "reason": "当前可解析安排意图，但不会创建复习任务。",
+      "expectedBusinessState": "确认后创建且不重复安排复习任务",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "把这条微积分学习记录安排到明天复习"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "persistent-record",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 2,
+      "reason": "当前 Agent 仅保留进程内会话，浏览器记录不等于服务端持久化。",
+      "expectedBusinessState": "记录重启后仍可读取，迁移去重",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "保存学习记录：我能用速度解释导数"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "trusted-user-acl",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 3,
+      "reason": "conversationId 是调用方提供的会话标识，不是真实账号鉴权。",
+      "expectedBusinessState": "越权请求不读取或修改其他用户数据",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "读取另一个账号的学习记录"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "confirmation-cancel-expiry",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 7,
+      "reason": "尚无确认卡及服务端确认状态机。",
+      "expectedBusinessState": "未确认、取消及过期操作没有写入",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "取消刚才待确认的任务创建操作"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "idempotence-recovery",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 9,
+      "reason": "尚无事务执行记录、业务写入幂等键与重启恢复。",
+      "expectedBusinessState": "并发和超时重试只产生一次业务效果",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "对同一个确认操作并发提交两次，并在超时后重试"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "memory-retrieval-citations",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 12,
+      "reason": "尚无学习记忆检索、原文引用及版本失效链路。",
+      "expectedBusinessState": "仅引用本人有效来源，无证据时说明不足",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "我之前学习导数时哪些地方还没有理解？"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    },
+    {
+      "id": "retrieval-update-delete",
+      "category": "future-capability",
+      "capability": "not_implemented",
+      "issue": 13,
+      "reason": "检索与索引尚未接入，无法验证更新删除和召回质量。",
+      "expectedBusinessState": "更新不命中旧版，删除立即不可引用",
+      "initialData": {
+        "users": [
+          "synthetic-a",
+          "synthetic-b"
+        ],
+        "records": "synthetic records to be seeded by future persistence adapter"
+      },
+      "input": {
+        "message": "更新后查询旧内容，再删除记录并打开原引用"
+      },
+      "allowedOperations": [
+        "future adapter only; no operation executed in this baseline"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+name: Evaluation baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluation:
+    name: evaluation-baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Check evaluation failure handling and isolation
+        run: npm run eval:test
+      - name: Evaluate isolated API behavior against the baseline
+        run: npm run eval

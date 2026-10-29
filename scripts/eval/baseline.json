@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "suiteVersion": "2026-10-28.v1",
+  "suiteHash": "b843809e4575b2ff4e8467f52b52fd9a7996c34baf6674d51e2407500360b3d5",
+  "sourceHashes": {
+    "lib/agent/provider.ts": "29f2787a7e8a82a25edb9ed931c0c437700687f1bc57172d5461aa8ea4a9683e",
+    "lib/agent/understanding.ts": "ff2f80ad1ecf80f226a5f552c8636768e4fc5534ed613fe9b1eb3f929f58cdc8",
+    "lib/agent/quiz.ts": "b7bfd38ac7e271820fad168f35f66c08e86ab92a52d1088167044419c5837cfc",
+    "lib/learning-program/service.ts": "b55e934d02f2ffb15510e05f20e00df78c8142da960759227bb60072cc55ea11"
+  },
+  "model": {
+    "provider": "demo",
+    "model": null
+  },
+  "summary": {
+    "passed": 23,
+    "failed": 0,
+    "not_implemented": 8
+  },
+  "results": [
+    {
+      "id": "agent-status",
+      "status": "passed"
+    },
+    {
+      "id": "learning-record",
+      "status": "passed"
+    },
+    {
+      "id": "exercise-record",
+      "status": "passed"
+    },
+    {
+      "id": "rest-record",
+      "status": "passed"
+    },
+    {
+      "id": "life-record",
+      "status": "passed"
+    },
+    {
+      "id": "plan-intent",
+      "status": "passed"
+    },
+    {
+      "id": "review-intent",
+      "status": "passed"
+    },
+    {
+      "id": "ambiguous-record",
+      "status": "passed"
+    },
+    {
+      "id": "plan-missing-duration",
+      "status": "passed"
+    },
+    {
+      "id": "explicit-output",
+      "status": "passed"
+    },
+    {
+      "id": "correction-retains-evidence",
+      "status": "passed"
+    },
+    {
+      "id": "conversation-separation-not-auth",
+      "status": "passed"
+    },
+    {
+      "id": "array-body",
+      "status": "passed"
+    },
+    {
+      "id": "empty-message",
+      "status": "passed"
+    },
+    {
+      "id": "numeric-message",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-output",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-context",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-json",
+      "status": "passed"
+    },
+    {
+      "id": "quiz-feedback",
+      "status": "passed"
+    },
+    {
+      "id": "quiz-invalid-action",
+      "status": "passed"
+    },
+    {
+      "id": "course-tutor-feedback",
+      "status": "passed"
+    },
+    {
+      "id": "course-missing-subject",
+      "status": "passed"
+    },
+    {
+      "id": "demo-seed",
+      "status": "passed"
+    },
+    {
+      "id": "plan-query",
+      "status": "not_implemented",
+      "issue": 8
+    },
+    {
+      "id": "review-scheduling",
+      "status": "not_implemented",
+      "issue": 8
+    },
+    {
+      "id": "persistent-record",
+      "status": "not_implemented",
+      "issue": 2
+    },
+    {
+      "id": "trusted-user-acl",
+      "status": "not_implemented",
+      "issue": 3
+    },
+    {
+      "id": "confirmation-cancel-expiry",
+      "status": "not_implemented",
+      "issue": 7
+    },
+    {
+      "id": "idempotence-recovery",
+      "status": "not_implemented",
+      "issue": 9
+    },
+    {
+      "id": "memory-retrieval-citations",
+      "status": "not_implemented",
+      "issue": 12
+    },
+    {
+      "id": "retrieval-update-delete",
+      "status": "not_implemented",
+      "issue": 13
+    }
+  ]
+}
