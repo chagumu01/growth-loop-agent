@@ -77,36 +77,50 @@ try {
 
   console.error("[eval] Starting isolated server on an ephemeral loopback port...");
   let baseUrl;
-  const serving = launch(["start", "--hostname", "127.0.0.1", "--port", "0"], runtimeEnv, (output) => {
-    baseUrl = output.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
-  });
-  server = serving.child;
-  // Observe spawn errors immediately, including during readiness polling.
-  let serverError;
-  serving.completion.catch((error) => { serverError = error; });
-  const deadline = Date.now() + 30000;
-  let ready = false;
-  while (Date.now() < deadline) {
-    if (interrupted || serverError || server.exitCode !== null) throw new Error(`Server stopped: ${serverError?.message || serving.output()}`);
-    if (baseUrl) {
-      try {
-        const response = await fetch(`${baseUrl}/api/agent`, { signal: AbortSignal.timeout(1000) });
-        if (response.ok) { ready = true; break; }
-      } catch { /* Await server readiness. */ }
+  let serving;
+  const startServer = async () => {
+    baseUrl = undefined;
+    serving = launch(['start', '--hostname', '127.0.0.1', '--port', '0'], runtimeEnv, (output) => {
+      baseUrl = output.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
+    });
+    server = serving.child;
+    let serverError;
+    serving.completion.catch((error) => { serverError = error; });
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+      if (interrupted || serverError || server.exitCode !== null) throw new Error(`Server stopped: ${serverError?.message || serving.output()}`);
+      if (baseUrl) {
+        try {
+          const response = await fetch(`${baseUrl}/api/agent`, { signal: AbortSignal.timeout(1000) });
+          if (response.ok) return;
+        } catch { /* Await server readiness. */ }
+      }
+      await new Promise((done) => setTimeout(done, 100));
     }
-    await new Promise((done) => setTimeout(done, 100));
-  }
-  if (!ready) throw new Error(`Server readiness timed out\n${serving.output()}`);
+    throw new Error(`Server readiness timed out\n${serving.output()}`);
+  };
+  await startServer();
+  const cookieJars = new Map();
   const initial = await fetch(`${baseUrl}/api/demo`).then((response) => response.json());
   const request = async (step) => {
     if (interrupted) throw new Error("Evaluation interrupted");
+    if (step.restartServer) {
+      stop(server); await serving.completion; await startServer();
+      return { status: 200, body: { restarted: true } };
+    }
+    if (step.parallel) return { status: 200, body: { responses: await Promise.all(step.parallel.map(request)) } };
     if (!/^\/api\/[a-z0-9/-]+$/.test(step.path)) throw new Error(`Invalid local API path: ${step.path}`);
-    const response = await fetch(`${baseUrl}${step.path}`, {
+    const url = new URL(`${baseUrl}${step.path}`);
+    for (const [key, value] of Object.entries(step.query || {})) url.searchParams.set(key, String(value));
+    const response = await fetch(url, {
       method: step.method || "POST",
-      headers: { "Content-Type": "application/json", ...step.headers },
+      headers: { "Content-Type": "application/json", Origin: baseUrl, ...(step.actor && cookieJars.has(step.actor) ? { Cookie: cookieJars.get(step.actor) } : {}), ...step.headers },
       ...(step.method === "GET" ? {} : { body: step.rawBody ?? JSON.stringify(step.body) }),
       signal: AbortSignal.timeout(mode === "llm" ? 120000 : 10000),
     });
+    if (step.actor && response.headers.has('set-cookie')) {
+      cookieJars.set(step.actor, response.headers.getSetCookie().map(value => value.split(';')[0]).join('; '));
+    }
     return { status: response.status, body: await response.json() };
   };
   const results = await executeCases(suite.cases, request, { mode });
@@ -127,7 +141,7 @@ try {
     },
     promptVersionBasis: "sourceHashes identify entire provider files, including prompts; not separate prompt revisions",
     isolation: { freshServer: true, temporaryDirectory: true, personalEnvFilesCopied: false,
-      seedUnchanged, database: "temporary path; persistence/ACL checks await A2/A3", businessWritesVerified: false },
+      seedUnchanged, database: "isolated SQLite; authenticated HTTP and restart checks", businessWritesVerified: results.some(result => result.id === "plan-query" && result.status === "passed") },
     summary, results,
   };
   process.exitCode = summary.failed || interrupted ? 1 : 0;
