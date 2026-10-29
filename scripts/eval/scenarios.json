@@ -1227,7 +1227,7 @@
             },
             {
               "path": "body.record.index_status",
-              "equals": "keyword"
+              "equals": "$index"
             }
           ],
           "capture": "note"
@@ -1558,7 +1558,7 @@
             },
             {
               "path": "body.record.index_status",
-              "equals": "keyword"
+              "equals": "$index"
             }
           ],
           "capture": "note"
@@ -2129,7 +2129,7 @@
             },
             {
               "path": "body.record.index_status",
-              "equals": "keyword"
+              "equals": "$index"
             }
           ],
           "capture": "tools"
@@ -2151,7 +2151,7 @@
             },
             {
               "path": "body.record.index_status",
-              "equals": "keyword"
+              "equals": "$index"
             }
           ],
           "capture": "state"
@@ -2237,7 +2237,7 @@
             },
             {
               "path": "body.record.index_status",
-              "equals": "keyword"
+              "equals": "$index"
             }
           ],
           "capture": "injection"
@@ -2329,7 +2329,7 @@
             },
             {
               "path": "body.record.index_status",
-              "equals": "keyword"
+              "equals": "$index"
             }
           ],
           "capture": "note"

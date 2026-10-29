@@ -5,11 +5,12 @@ export function readPath(value, path) {
     current != null && Object.hasOwn(current, key) ? current[key] : undefined, value);
 }
 
-export function resolveInput(value, captures, session, mode) {
+export function resolveInput(value, captures, session, mode, retrieval = "keyword") {
   if (value === "$mode") return mode === "llm" ? "llm" : "demo";
   if (value === "$grading") return mode === "llm" ? "llm" : "rules";
+  if (value === "$index") return retrieval === "hybrid" ? "ready" : "keyword";
   if (typeof value === "string" && value.startsWith("$session:")) return `${session}-${value.slice(9)}`;
-  if (Array.isArray(value)) return value.map((item) => resolveInput(item, captures, session, mode));
+  if (Array.isArray(value)) return value.map((item) => resolveInput(item, captures, session, mode, retrieval));
   if (value && typeof value === "object") {
     if (Object.hasOwn(value, "$ref")) {
       assert.equal(Object.keys(value).length, 1, "$ref must be the only key");
@@ -18,7 +19,7 @@ export function resolveInput(value, captures, session, mode) {
       return result;
     }
     return Object.fromEntries(Object.entries(value).map(([key, item]) =>
-      [key, resolveInput(item, captures, session, mode)]));
+      [key, resolveInput(item, captures, session, mode, retrieval)]));
   }
   return value;
 }
@@ -49,7 +50,7 @@ export function assertChecks(response, checks) {
   }
 }
 
-export async function executeCases(cases, request, { mode = "rules" } = {}) {
+export async function executeCases(cases, request, { mode = "rules", retrieval = "keyword" } = {}) {
   assert.ok(Array.isArray(cases) && cases.length > 0, "Scenario set must not be empty");
   const seen = new Set();
   for (const scenario of cases) {
@@ -76,7 +77,7 @@ export async function executeCases(cases, request, { mode = "rules" } = {}) {
       for (const [index, step] of scenario.steps.entries()) {
         stepIndex = index;
         stage = "request";
-        const input = resolveInput(step, captures, `eval-${scenario.id}`, mode);
+        const input = resolveInput(step, captures, `eval-${scenario.id}`, mode, retrieval);
         const response = await request(input);
         if (response.requestId) traceIds.push(response.requestId);
         stage = "assertion";
