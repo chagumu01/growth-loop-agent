@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { authenticate, MemoryError, SESSION_COOKIE } from '@/lib/memory/auth';
 import { openDatabase } from '@/lib/memory/store';
-import { deleteRecord, getRecord, indexRecord, listRecords, saveRecord } from '@/lib/memory/service';
+import { deleteRecord, getRecord, indexRecord, listRecords, saveRecord, searchMemory } from '@/lib/memory/service';
 import { failure, json, readBody } from '@/lib/memory/http';
 import { importBrowserRecords } from '@/lib/data/import';
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const body = await readBody(request);
     if (body.action === 'import') {
       const result = importBrowserRecords(db, owner, body.records, body.confirmed === true);
-      for (const record of listRecords(db, owner)) if (record.index_status === 'pending') indexRecord(db, owner, record.id);
+      for (const record of listRecords(db, owner)) if (record.index_status === 'pending') await indexRecord(db, owner, record.id);
       return json(result);
     }
     if (body.action === 'save') {
@@ -30,8 +30,12 @@ export async function POST(request: Request) {
       const { externalId: ignored, ...input } = body;
       void ignored;
       const record = saveRecord(db, owner, input);
-      indexRecord(db, owner, record.id);
+      await indexRecord(db, owner, record.id);
       return json({ record: getRecord(db, owner, record.id) });
+    }
+    if (body.action === 'search') {
+      if (typeof body.query !== 'string') throw new MemoryError('请输入检索问题。');
+      return json(await searchMemory(db, owner, body.query));
     }
     if (typeof body.id !== 'string') throw new MemoryError('记录标识无效。');
     if (body.action === 'delete') {
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
       return json({ ok: true });
     }
     if (body.action === 'reindex') {
-      indexRecord(db, owner, body.id);
+      await indexRecord(db, owner, body.id);
       return json({ record: getRecord(db, owner, body.id) });
     }
     throw new MemoryError('不支持的操作。');
