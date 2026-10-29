@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
@@ -159,7 +160,7 @@ export default function MobileAppShell({
         )}
         {activeTab === "课程" && learningStudio}
         {activeTab === "记录" && <MobileRecordsV3 logs={logs} onOpenComposer={() => openComposer()} />}
-        {activeTab === "成长" && <MobileGrowthV3 earnedCoins={earnedCoins} />}
+        {activeTab === "成长" && <><Link className="quiet-button" href="/account">账号与个人数据</Link><MobileGrowthV3 earnedCoins={earnedCoins} /></>}
       </div>
 
       {!isHome && activeTab !== "课程" && <button className="app-mobile-v3-fab" onClick={() => openComposer()} aria-label="打开随手记录">
