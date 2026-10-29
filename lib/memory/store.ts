@@ -23,6 +23,13 @@ const migrations = [String.raw`
     idempotency_key TEXT UNIQUE NOT NULL, result TEXT, error_category TEXT, attempts INTEGER NOT NULL DEFAULT 0,
     expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
   CREATE INDEX operations_owner ON operations(user_id,created_at);
+`, String.raw`
+  CREATE TABLE chunks(id TEXT PRIMARY KEY, record_id TEXT NOT NULL REFERENCES records(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL, content TEXT NOT NULL, embedding TEXT, model TEXT);
+  CREATE INDEX chunks_record ON chunks(record_id);
+  CREATE TABLE index_jobs(record_id TEXT NOT NULL REFERENCES records(id) ON DELETE CASCADE, version INTEGER NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('pending','running','succeeded','failed')), attempts INTEGER NOT NULL DEFAULT 0,
+    error TEXT, updated_at INTEGER NOT NULL, PRIMARY KEY(record_id,version));
 `];
 
 export function openDatabase(path = process.env.MEMORY_DB_PATH || resolve('.data', 'memory.sqlite')) {
