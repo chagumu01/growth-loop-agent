@@ -29,6 +29,7 @@ function latency(report) {
   return { sumMs: times.reduce((a, b) => a + b, 0), p50Ms: percentile(0.5), p95Ms: percentile(0.95), scope: 'scenario execution, excludes build time' };
 }
 export function compareReports(baseline, candidate, pricing) {
+  assert.ok(baseline.cleanup?.status !== 'failed' && candidate.cleanup?.status !== 'failed', 'A report failed cleanup; evaluation did not finish cleanly');
   assert.ok(baseline.versions?.suiteHash && baseline.versions.suiteHash === candidate.versions?.suiteHash, 'Reports must use exactly the same scenario suite and initial data');
   const before = rows(baseline), after = rows(candidate);
   const ids = [...new Set([...before.keys(), ...after.keys()])].sort();

@@ -105,7 +105,7 @@ export function evaluationEnvironment(source, directory, mode = "rules") {
       if (/^(LLM_|OPENAI_|DEEPSEEK_|GLM_)/.test(key)) environment[key] = value;
     }
   } else environment.LLM_PROVIDER = "demo";
-  return { ...environment, NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1",
+  return { ...environment, NODE_ENV: "production", NEXT_TELEMETRY_DISABLED: "1", TEMP: directory, TMP: directory, TMPDIR: directory,
     MEMORY_DB_PATH: `${directory}/memory.sqlite` };
 }
 

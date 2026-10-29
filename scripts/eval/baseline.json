@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "suiteVersion": "2026-10-29.v2",
-  "suiteHash": "b9b0c32a2f47a55edc942963f04495dbf09b83ee842016ee42cc57c053ec714d",
+  "suiteHash": "fe08f6f24393e9bcdd076cbbfd2b27d1c5ac5593002ed94b36f6c8b539ef98c1",
   "sourceHashes": {
-    "lib/agent/provider.ts": "29f2787a7e8a82a25edb9ed931c0c437700687f1bc57172d5461aa8ea4a9683e",
+    "lib/agent/provider.ts": "929757cc140723c13b571b66f286810abd60031df6e0b3440350ec2c781dfadf",
     "lib/agent/understanding.ts": "ff2f80ad1ecf80f226a5f552c8636768e4fc5534ed613fe9b1eb3f929f58cdc8",
-    "lib/agent/quiz.ts": "b7bfd38ac7e271820fad168f35f66c08e86ab92a52d1088167044419c5837cfc",
-    "lib/learning-program/service.ts": "b55e934d02f2ffb15510e05f20e00df78c8142da960759227bb60072cc55ea11"
+    "lib/agent/quiz.ts": "18a728c910660245bc5608a03825b10937eee627c089e92960125a54d2765b98",
+    "lib/learning-program/service.ts": "49e7ae252090720c36f84ff82409ce7718df934f20d978d0cc4ab9c54152b95d"
   },
   "model": {
     "provider": "demo",

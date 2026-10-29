@@ -28,4 +28,28 @@ jobs:
       - name: Check evaluation failure handling and isolation
         run: npm run eval:test
       - name: Evaluate isolated API behavior against the baseline
-        run: npm run eval
+        run: |
+          mkdir -p "$RUNNER_TEMP/growth-loop-reports"
+          node scripts/eval/run.mjs > "$RUNNER_TEMP/growth-loop-reports/baseline.json"
+      - name: Compare keyword and synthetic hybrid on the same dataset
+        run: node scripts/eval/compare.mjs > "$RUNNER_TEMP/growth-loop-reports/comparison.json"
+      - name: Preserve evaluation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-reports
+          path: ${{ runner.temp }}/growth-loop-reports/*.json
+          retention-days: 7
+  critical:
+    name: critical-safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Require confirmation, ownership, exactly-once effects and valid citations
+        run: npm run eval:critical
