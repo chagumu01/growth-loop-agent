@@ -4,11 +4,14 @@ import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSync,
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareBaseline, evaluationEnvironment, executeCases } from "./engine.mjs";
+import { startVectorFixture } from './mock-vectors.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const arguments_ = process.argv.slice(2);
-if (arguments_.some((arg) => arg !== "--llm")) throw new Error("Usage: npm run eval [-- --llm]; no external server is accepted");
+if (arguments_.some((arg) => !['--llm', '--hybrid', '--mock-vectors'].includes(arg))) throw new Error('Usage: npm run eval [-- --llm] [--hybrid --mock-vectors]');
+if (arguments_.includes('--mock-vectors') && !arguments_.includes('--hybrid')) throw new Error('--mock-vectors requires --hybrid');
 const mode = arguments_.includes("--llm") ? "llm" : "rules";
+const retrieval = arguments_.includes('--hybrid') ? 'hybrid' : 'keyword';
 const suite = JSON.parse(readFileSync(join(root, "scripts/eval/scenarios.json"), "utf8"));
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const sourceFiles = ["lib/agent/provider.ts", "lib/agent/understanding.ts", "lib/agent/quiz.ts", "lib/learning-program/service.ts"];
@@ -32,6 +35,7 @@ const runtimeEnv = evaluationEnvironment(process.env, sandbox, mode);
 let server;
 let build;
 let interrupted = false;
+let vectorFixture;
 const stop = (child) => {
   if (!child || child.exitCode !== null || child.signalCode !== null) return;
   if (process.platform === "win32") {
@@ -62,6 +66,19 @@ function launch(args, env, onData = () => {}) {
 
 let report;
 try {
+  if (retrieval === 'hybrid') {
+    if (arguments_.includes('--mock-vectors')) {
+      vectorFixture = await startVectorFixture();
+      runtimeEnv.MEMORY_EMBEDDING_BASE_URL = vectorFixture.url;
+      runtimeEnv.MEMORY_EMBEDDING_API_KEY = 'synthetic-local-only';
+      runtimeEnv.MEMORY_EMBEDDING_MODEL = 'synthetic-vectors-v1';
+    } else {
+      for (const key of ['MEMORY_EMBEDDING_BASE_URL', 'MEMORY_EMBEDDING_API_KEY', 'MEMORY_EMBEDDING_MODEL']) {
+        if (!process.env[key]) throw new Error(`Hybrid evaluation requires ${key} or --mock-vectors`);
+        runtimeEnv[key] = process.env[key];
+      }
+    }
+  }
   // Copy only application sources/configuration: never .env, .data or personal files.
   for (const path of ["app", "lib", "public", "package.json", "package-lock.json", "next.config.mjs", "tsconfig.json", "next-env.d.ts", "AGENTS.md"]) {
     if (existsSync(join(root, path))) cpSync(join(root, path), join(sandbox, path), { recursive: true });
@@ -133,7 +150,7 @@ try {
     }
     return { status: response.status, body: await response.json(), requestId: response.headers.get('x-request-id') };
   };
-  const results = await executeCases(suite.cases, request, { mode });
+  const results = await executeCases(suite.cases, request, { mode, retrieval });
   const baselineFile = join(root, "scripts/eval/baseline.json");
   if (existsSync(baselineFile)) {
     results.push(...compareBaseline(results, JSON.parse(readFileSync(baselineFile, "utf8"))));
@@ -145,6 +162,7 @@ try {
   for (const result of results) summary[result.status]++;
   report = {
     schemaVersion: 1, mode, versions,
+    retrieval: { strategy: retrieval, mockVectors: Boolean(vectorFixture), model: runtimeEnv.MEMORY_EMBEDDING_MODEL || null },
     model: mode === "rules" ? { provider: "demo", model: null } : {
       provider: runtimeEnv.LLM_PROVIDER || "openai-compatible",
       model: runtimeEnv.LLM_MODEL || runtimeEnv.OPENAI_MODEL || runtimeEnv.DEEPSEEK_MODEL || runtimeEnv.GLM_MODEL || "unknown",
@@ -162,6 +180,7 @@ try {
 } finally {
   stop(build);
   stop(server);
+  if (vectorFixture) await vectorFixture.close();
   // Unlink the shared dependency junction before recursively removing only our temp directory.
   const dependencies = join(sandbox, "node_modules");
   if (existsSync(dependencies) && lstatSync(dependencies).isSymbolicLink()) unlinkSync(dependencies);
