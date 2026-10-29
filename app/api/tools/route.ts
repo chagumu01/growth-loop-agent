@@ -5,9 +5,10 @@ import { openDatabase } from '@/lib/memory/store';
 import { getOperation, listOperations } from '@/lib/tools/operations';
 import { proposeTool } from '@/lib/tools/protocol';
 import { DomainError } from '@/lib/data/errors';
-import { cancelOperation, confirmOperation, reviseOperation } from '@/lib/tools/confirmation';
+import { cancelOperation, confirmWithRetry, reviseOperation } from '@/lib/tools/confirmation';
 import { executeBusinessTool } from '@/lib/tools/executor';
 import { planFromMessage } from '@/lib/tools/planner';
+import { recoverOperation } from '@/lib/tools/recovery';
 
 export const runtime = 'nodejs';
 export async function GET(request: Request) {
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
     const version = body.version as number;
     if (body.action === 'cancel') return json({ operation: cancelOperation(db, owner, body.id, version) });
     if (body.action === 'revise') return json({ operation: reviseOperation(db, owner, body.id, version, body.params) });
-    if (body.action === 'confirm') return json({ operation: confirmOperation(db, owner, body.id, version, executeBusinessTool) });
+    if (body.action === 'confirm') return json({ operation: confirmWithRetry(db, owner, body.id, version, executeBusinessTool) });
+    if (body.action === 'recover') return json({ operation: recoverOperation(db, owner, body.id, version) });
     throw new DomainError('不支持的操作。');
   } catch (error) { return failure(error); }
   finally { db.close(); }

@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "data:test": "tsx --test lib/data/data.test.ts",
-    "test:domain": "tsx --test lib/data/data.test.ts lib/memory/auth.test.ts lib/tools/operations.test.ts lib/tools/protocol.test.ts lib/tools/confirmation.test.ts lib/tools/executor.test.ts",
+    "test:domain": "tsx --test lib/data/data.test.ts lib/memory/auth.test.ts lib/tools/operations.test.ts lib/tools/protocol.test.ts lib/tools/confirmation.test.ts lib/tools/executor.test.ts lib/tools/recovery.test.ts",
     "eval": "node scripts/eval/run.mjs",
     "eval:llm": "node scripts/eval/run.mjs --llm",
     "eval:test": "node --test scripts/eval/engine.test.mjs",
