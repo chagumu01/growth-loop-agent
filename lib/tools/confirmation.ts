@@ -27,6 +27,8 @@ export function cancelOperation(db: DatabaseSync, owner: string, id: string, ver
   return transitionOperation(db, owner, id, version, ['pending'], 'cancelled');
 }
 export type ToolExecutor = (db: DatabaseSync, owner: string, op: Operation) => unknown;
+export class TransientToolError extends Error {}
+export class UncertainToolError extends Error {}
 export function confirmOperation(db: DatabaseSync, owner: string, id: string, version: number, execute: ToolExecutor) {
   const previous = getOperation(db, owner, id);
   if (previous.version !== version) throw new DomainError('参数已变化，请重新确认。', 409);
@@ -34,18 +36,37 @@ export function confirmOperation(db: DatabaseSync, owner: string, id: string, ve
   pending(db, owner, id, version, Date.now());
   try {
     return transaction(db, () => {
+      const latest = getOperation(db, owner, id);
+      if (latest.version === version && latest.status === 'succeeded') return latest;
       const op = pending(db, owner, id, version, Date.now());
       transitionOperation(db, owner, id, version, ['pending'], 'running');
       db.prepare('UPDATE operations SET attempts=attempts+1 WHERE id=?').run(id);
       const result = execute(db, owner, op);
+      if (result instanceof Promise) throw new DomainError('执行器必须在本地事务内同步完成。');
       return transitionOperation(db, owner, id, version, ['running'], 'succeeded', { result: JSON.stringify(result) });
     });
   } catch (error) {
     const current = getOperation(db, owner, id);
     if (current.status === 'pending') {
       db.prepare('UPDATE operations SET attempts=attempts+1 WHERE id=? AND user_id=?').run(id, owner);
-      transitionOperation(db, owner, id, version, ['pending'], 'failed', { error: error instanceof DomainError ? 'invalid_or_forbidden' : 'execution_failed' });
+      const uncertain = error instanceof UncertainToolError;
+      const transient = error instanceof TransientToolError || (error as { errcode?: number }).errcode === 5;
+      transitionOperation(db, owner, id, version, ['pending'], uncertain ? 'uncertain' : 'failed', {
+        error: uncertain ? 'result_unknown' : transient ? 'transient' : error instanceof DomainError ? 'invalid_or_forbidden' : 'execution_failed',
+      });
     }
     throw error;
   }
+}
+
+export function confirmWithRetry(db: DatabaseSync, owner: string, id: string, version: number, execute: ToolExecutor) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try { return confirmOperation(db, owner, id, version, execute); }
+    catch (error) {
+      const op = getOperation(db, owner, id);
+      if (op.status !== 'failed' || op.error_category !== 'transient' || op.attempts >= 3) throw error;
+      transitionOperation(db, owner, id, version, ['failed'], 'pending');
+    }
+  }
+  throw new DomainError('重试次数已用完，请检查操作记录。', 503);
 }

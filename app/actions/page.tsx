@@ -84,6 +84,7 @@ export default function ActionsPage() {
         <button className="primary-button" disabled={busy} onClick={() => void perform({ action: 'confirm', id: active.id, version: active.version })}>确认执行</button>{' '}
         <button className="quiet-button" disabled={busy} onClick={() => void perform({ action: 'cancel', id: active.id, version: active.version })}>取消操作</button></>}
       {active.status === 'succeeded' && <p>已保存{JSON.parse(active.result || '{}').title ? `「${JSON.parse(active.result || '{}').title}」` : '执行结果'}。{active.tool === 'save_record' ? '可在学习记忆中回看。' : '可选择日期查询计划。'}</p>}
+      {['running', 'uncertain', 'failed'].includes(active.status) && <><p>操作未完成。可先核实已有结果，再尝试恢复；输入错误需要重新发起。</p><button className="quiet-button" disabled={busy} onClick={() => void perform({ action: 'recover', id: active.id, version: active.version })}>核实并恢复</button></>}
     </section>}
     {tasks.length > 0 && <section className="panel" style={{ padding: 20 }}><h2>本人计划</h2>{tasks.map(task => <p key={task.id}>{task.date} · {task.title} · {task.status === 'done' ? '已完成' : '待完成'}</p>)}</section>}
     <section className="panel" style={{ padding: 20, marginTop: 16 }}><h2>操作历史</h2>{operations.length ? operations.map(op => <p key={op.id}><button className="quiet-button" disabled={busy} onClick={() => edit(op)}>{names[op.tool]} · {states[op.status]}</button></p>) : <p>暂无操作。</p>}</section>
