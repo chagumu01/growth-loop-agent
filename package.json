@@ -2,12 +2,15 @@
   "name": "growth-loop-agent",
   "version": "0.2.0-prototype",
   "private": true,
+  "engines": { "node": ">=22.13.0" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "data:test": "tsx --test lib/data/data.test.ts",
+    "test:domain": "npm run data:test",
     "eval": "node scripts/eval/run.mjs",
     "eval:llm": "node scripts/eval/run.mjs --llm",
     "eval:test": "node --test scripts/eval/engine.test.mjs",
@@ -34,6 +37,7 @@
     "@types/react-dom": "19.2.4",
     "eslint": "9.17.0",
     "eslint-config-next": "16.3.0",
+    "tsx": "^4.23.15",
     "typescript": "5.7.2"
   }
 }

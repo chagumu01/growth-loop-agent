@@ -41,3 +41,6 @@ jobs:
         run: npx --no-install next typegen
       - name: Run ${{ matrix.check }}
         run: npm run ${{ matrix.check }}
+      - name: Run persistent data regression tests
+        if: matrix.check == 'typecheck'
+        run: npm run test:domain
