@@ -6,6 +6,8 @@ import { getOperation, listOperations } from '@/lib/tools/operations';
 import { proposeTool } from '@/lib/tools/protocol';
 import { DomainError } from '@/lib/data/errors';
 import { cancelOperation, confirmOperation, reviseOperation } from '@/lib/tools/confirmation';
+import { executeBusinessTool } from '@/lib/tools/executor';
+import { planFromMessage } from '@/lib/tools/planner';
 
 export const runtime = 'nodejs';
 export async function GET(request: Request) {
@@ -23,12 +25,17 @@ export async function POST(request: Request) {
   try {
     const owner = authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value).id;
     const body = await readBody(request);
+    if (body.action === 'chat') {
+      const proposal = planFromMessage(body.message, typeof body.recordId === 'string' ? body.recordId : undefined);
+      if (proposal.missing.length) return json({ clarification: proposal.missing.join(' ') });
+      return json(proposeTool(db, owner, proposal.tool, proposal.params));
+    }
     if (body.action === 'propose') return json(proposeTool(db, owner, body.tool, body.params));
     if (typeof body.id !== 'string' || !Number.isInteger(body.version)) throw new DomainError('缺少操作与确认版本。');
     const version = body.version as number;
     if (body.action === 'cancel') return json({ operation: cancelOperation(db, owner, body.id, version) });
     if (body.action === 'revise') return json({ operation: reviseOperation(db, owner, body.id, version, body.params) });
-    if (body.action === 'confirm') return json({ operation: confirmOperation(db, owner, body.id, version, () => { throw new DomainError('工具执行器尚未接入，请稍后再试。', 501); }) });
+    if (body.action === 'confirm') return json({ operation: confirmOperation(db, owner, body.id, version, executeBusinessTool) });
     throw new DomainError('不支持的操作。');
   } catch (error) { return failure(error); }
   finally { db.close(); }
