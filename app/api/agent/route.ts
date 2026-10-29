@@ -1,9 +1,10 @@
+import { traceRequest } from '@/lib/observability/trace';
 import { NextResponse } from "next/server";
 import { getAgentStatus, runAgent } from "@/lib/agent/provider";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function handleGET() {
   return NextResponse.json(getAgentStatus(), {
     headers: { "Cache-Control": "no-store" },
   });
@@ -13,7 +14,7 @@ function errorResponse(error: string, status = 400) {
   return NextResponse.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -59,3 +60,7 @@ export async function POST(request: Request) {
     return errorResponse("agent unavailable", 500);
   }
 }
+
+export async function GET(request: Request) { return traceRequest(request, () => handleGET()); }
+
+export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }

@@ -72,17 +72,19 @@ export async function executeCases(cases, request, { mode = "rules" } = {}) {
       assert.ok(scenario.initialData && scenario.allowedOperations && scenario.expectedBusinessState, `Missing scenario contract: ${scenario.id}`);
       assert.ok(Array.isArray(scenario.steps) && scenario.steps.length, `Missing steps: ${scenario.id}`);
       const captures = {};
+      const traceIds = [];
       for (const [index, step] of scenario.steps.entries()) {
         stepIndex = index;
         stage = "request";
         const input = resolveInput(step, captures, `eval-${scenario.id}`, mode);
         const response = await request(input);
+        if (response.requestId) traceIds.push(response.requestId);
         stage = "assertion";
         assertChecks(response, input.checks);
         if (step.capture) captures[step.capture] = response.body;
       }
       results.push({ id: scenario.id, status: "passed", durationMs: Math.round(performance.now() - start),
-        businessState: scenario.expectedBusinessState });
+        businessState: scenario.expectedBusinessState, traceIds });
     } catch (error) {
       results.push({ id: scenario.id, status: "failed", stage, step: stepIndex + 1,
         errorCategory: stage === "assertion" ? "assertion_failed" : stage === "request" ? "request_failed" : "invalid_scenario",

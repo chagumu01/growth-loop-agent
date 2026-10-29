@@ -1,11 +1,15 @@
 import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { DomainError } from '../data/errors';
+import { traceSync } from '../observability/trace';
 
 export const SESSION_COOKIE = 'growth-memory-session';
 export class MemoryError extends DomainError {}
 export function hashToken(token: string) { return createHash('sha256').update(token).digest('hex'); }
 export function authenticate(db: DatabaseSync, cookie: string | undefined) {
+  return traceSync('authentication', () => authenticateSession(db, cookie));
+}
+function authenticateSession(db: DatabaseSync, cookie: string | undefined) {
   if (!cookie) throw new MemoryError('请先登录学习记忆。', 401);
   const row = db.prepare('SELECT users.id, users.name FROM sessions JOIN users ON users.id=sessions.user_id WHERE token=? AND expires>?')
     .get(hashToken(cookie), Date.now()) as { id: string; name: string } | undefined;

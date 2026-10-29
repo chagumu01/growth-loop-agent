@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { DomainError } from '../data/errors';
 import { createOperation } from './operations';
+import { traceSync } from '../observability/trace';
 
 export const toolNames = ['create_task', 'query_plan', 'save_record', 'schedule_review'] as const;
 export type ToolName = typeof toolNames[number];
@@ -36,6 +37,9 @@ export function validateProposal(tool: unknown, input: unknown): { tool: ToolNam
   return { tool: tool as ToolName, params };
 }
 export function proposeTool(db: DatabaseSync, owner: string, tool: unknown, input: unknown) {
+  return traceSync('tool_proposal', () => propose(db, owner, tool, input));
+}
+function propose(db: DatabaseSync, owner: string, tool: unknown, input: unknown) {
   const proposal = validateProposal(tool, input);
   if (proposal.tool === 'query_plan') {
     return { kind: 'read' as const, tasks: db.prepare('SELECT id,title,date,category,status,record_id FROM tasks WHERE user_id=? AND date>=? AND date<=? ORDER BY date,created_at')

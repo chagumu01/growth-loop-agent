@@ -1,3 +1,4 @@
+import { traceRequest } from '@/lib/observability/trace';
 import { cookies } from 'next/headers';
 import { authenticate, MemoryError, SESSION_COOKIE } from '@/lib/memory/auth';
 import { openDatabase } from '@/lib/memory/store';
@@ -6,7 +7,7 @@ import { failure, json, readBody } from '@/lib/memory/http';
 import { importBrowserRecords } from '@/lib/data/import';
 
 export const runtime = 'nodejs';
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const db = openDatabase();
   try {
     const owner = authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value).id;
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   } catch (error) { return failure(error); }
   finally { db.close(); }
 }
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const db = openDatabase();
   try {
     const owner = authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value).id;
@@ -51,3 +52,7 @@ export async function POST(request: Request) {
   } catch (error) { return failure(error); }
   finally { db.close(); }
 }
+
+export async function GET(request: Request) { return traceRequest(request, () => handleGET(request)); }
+
+export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }

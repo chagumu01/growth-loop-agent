@@ -3,6 +3,7 @@ import { DomainError } from '../data/errors';
 import { transaction } from '../memory/store';
 import { getOperation, transitionOperation, type Operation } from './operations';
 import { validateProposal } from './protocol';
+import { recordToolAttempts, traceSync } from '../observability/trace';
 
 function pending(db: DatabaseSync, owner: string, id: string, version: number, now: number) {
   const op = getOperation(db, owner, id);
@@ -30,6 +31,9 @@ export type ToolExecutor = (db: DatabaseSync, owner: string, op: Operation) => u
 export class TransientToolError extends Error {}
 export class UncertainToolError extends Error {}
 export function confirmOperation(db: DatabaseSync, owner: string, id: string, version: number, execute: ToolExecutor) {
+  return traceSync('confirmation', () => confirm(db, owner, id, version, execute));
+}
+function confirm(db: DatabaseSync, owner: string, id: string, version: number, execute: ToolExecutor) {
   const previous = getOperation(db, owner, id);
   if (previous.version !== version) throw new DomainError('参数已变化，请重新确认。', 409);
   if (previous.status === 'succeeded') return previous;
@@ -41,7 +45,8 @@ export function confirmOperation(db: DatabaseSync, owner: string, id: string, ve
       const op = pending(db, owner, id, version, Date.now());
       transitionOperation(db, owner, id, version, ['pending'], 'running');
       db.prepare('UPDATE operations SET attempts=attempts+1 WHERE id=?').run(id);
-      const result = execute(db, owner, op);
+      recordToolAttempts(op.attempts + 1);
+      const result = traceSync('tool_execution', () => execute(db, owner, op));
       if (result instanceof Promise) throw new DomainError('执行器必须在本地事务内同步完成。');
       return transitionOperation(db, owner, id, version, ['running'], 'succeeded', { result: JSON.stringify(result) });
     });

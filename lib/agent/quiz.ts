@@ -1,3 +1,4 @@
+import { modelFetch } from '../observability/trace';
 import type { AgentIntent } from "./provider";
 
 export type QuizQuestion = {
@@ -92,7 +93,7 @@ async function callLlm(messages: Array<{ role: "system" | "user"; content: strin
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${config.baseUrl!.replace(/\/$/, "")}/chat/completions`, {
+    const response = await modelFetch('model', `${config.baseUrl!.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
