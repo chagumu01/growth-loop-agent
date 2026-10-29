@@ -10,6 +10,7 @@ test('comparison rejects different datasets and reports a safety regression expl
   assert.equal(compared.regressions[0].id, 'confirmation');
   assert.equal(compared.delta.completionRate, -1);
   assert.equal(compareReports(report(), report()).regressions.length, 0);
+  assert.throws(() => compareReports(report(), { ...report(), cleanup: { status: 'failed' } }));
 });
 test('missing provider usage or pricing is unknown, never fabricated as free', () => {
   const data = report();

@@ -12,6 +12,9 @@
 | 学习闭环 | 学习记录 → 生成 2–3 道理解题 → LLM 或规则评分 → XP 回写 | `/api/quiz`、记录页 |
 | AI 学习程序 | 以任意学习目标生成课程路线、每节讲解/练习/交付物、AI 讲师和 3 道课后理解题；可把本节放入今日计划 | `/api/learning-program`、课程页 |
 | 今日行动 | 计划、待办、学习/运动/生活/休息分类、XP 与积分 demo | `/api/demo`、首页/计划 |
+| 个人行动与工具 | 注册登录后查询本人计划，确认后创建任务、保存记录、安排复习；支持参数重确认、幂等与失败恢复 | `/account`、`/actions`、`/api/tools` |
+| 学习记忆 | SQLite 持久化、浏览器历史迁移、内容版本、索引任务、关键词/可选向量检索和原文引用 | `/memory`、`/api/memory` |
+| 评测与观测 | 隔离数据回归、版本/策略比较、请求阶段轨迹与关键检查 | `npm run eval`、`npm run eval:compare`、GitHub Actions |
 | 晚间回顾 | 统一总结当天记录，并依次追问最重要行动、真正理解和明日一步 | 首页晚报入口、Agent `review` 意图 |
 | 微信入口 | 微信公众号首次验证、明文 XML 文本回调、签名校验、LLM 超时回退 | `/api/wechat` |
 | Android App | 独立移动壳 v4；首页一屏 AI 会面，不堆功能、不产生首页纵向滚动 | `android/`、APK |
@@ -43,7 +46,7 @@ flowchart LR
 
 ### 环境要求
 
-- Node.js 22 或更高版本（Android WebView CDP smoke 需要 Node 22 的 `WebSocket` 全局对象）
+- Node.js >=22.13，推荐 Node.js 24（内置 SQLite 与 WebSocket）
 - npm
 - Windows PowerShell（Android 电脑模拟器脚本按 Windows 环境编写）
 - Android 调试需要本机 Android SDK、AVD 和 Java 21；详见 [Android 构建说明](docs/ANDROID_BUILD.md)
@@ -67,15 +70,30 @@ npm.cmd run start -- --hostname 127.0.0.1 --port 3000
 
 网页必须通过 Next.js 服务访问，不能直接双击 HTML 或部署到纯静态托管。第一次在另一台电脑配置服务，请先看 [网页服务配置手册](docs/WEB_SERVICE_SETUP.md)。
 
+### 使用个人数据
+
+进入 `/account` 注册账号，再进入 `/actions` 或 `/memory`。账号为 3–40 位字母、数字、下划线或连字符，密码至少 10 位；当前没有密码找回。个人任务和学习记忆保存在 `MEMORY_DB_PATH`，默认 `.data/memory.sqlite`。部署时该路径需位于持久卷；备份应使用 SQLite 备份工具或先停止服务，避免遗漏 WAL 中的事务。
+
+首页、成长统计仍含演示数据；个人任务和检索结果以这两个独立入口为准。浏览器历史只在本人确认后导入，按原 ID 去重且排除演示种子。课程反馈需要主动保存，课程本身的进度仍在 localStorage。
+
+向量服务可通过 `MEMORY_EMBEDDING_BASE_URL`、`MEMORY_EMBEDDING_API_KEY`、`MEMORY_EMBEDDING_MODEL` 配置；未配置时使用关键词检索，失败时明确显示索引/降级状态。`APP_VERSION` 可填写部署提交号。动态 API 返回 `x-request-id`，服务日志记录阶段、用量和错误类别，不保存密钥与完整学习原文。
+
 ### 检查项目
 
 ```powershell
 npm.cmd run typecheck
 npm.cmd run lint
 npm.cmd run build
+npm.cmd run eval:critical
+npm.cmd run eval
+npm.cmd run eval:compare
 # 有受管 LLM 配置时，实际生成一门 Agent 课程并完成讲师追问、课后评分
 npm.cmd run learning:smoke -- --require-llm
 ```
+
+`eval` 会在仓库同盘的临时兄弟目录内构建并启动隔离服务，因此需要父目录写权限和构建空间。它不复制 `.env` 或个人数据库，默认禁用真实模型，结束后清理服务及临时目录。`eval:compare` 默认比较关键词和本地合成向量，不能代表真实模型质量。显式运行 `eval:llm` 或不带 `--mock-vectors` 的 `eval -- --hybrid` 时，需在进程环境提供对应服务配置，可能产生供应商费用。
+
+比较已有报告可用 `npm run eval:compare -- --baseline before.json --candidate after.json`；两份报告必须来自同一场景/初始数据哈希。可加 `--pricing prices.json`，提供带 `source`、`version` 及 `models[模型名].inputPerMillionUSD/outputPerMillionUSD` 的价格数据；缺少真实用量或价格时费用标为未知。
 
 ## 配置 LLM
 
@@ -211,7 +229,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/debug-apk.ps1 -A
 
 ## 数据、安全与发布边界
 
-- demo 数据来自 `lib/demo-data.ts`，浏览器记录原型使用 localStorage；当前没有真实数据库、多用户隔离、后台定时任务或数据导出链路。
+- demo 数据来自 `lib/demo-data.ts`，浏览器记录和课程进度仍使用 localStorage；个人行动与学习记忆已有 SQLite 和会话隔离。当前没有后台通知调度或正式数据导出链路。
 - LLM 只负责理解、建议、出题和评分；任务、XP、积分等写操作应继续由规则和受控服务端处理。
 - 不要提交 `.env.local`、API Key、微信 Token、`android/local.properties`、Android build 目录、模拟器镜像或本机 SDK 路径。
 - 微信回调当前只支持明文文本；不要在未补齐加密、重放保护、限流和审计前接收生产敏感消息。

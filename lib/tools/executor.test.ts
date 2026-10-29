@@ -33,5 +33,6 @@ test('four tools execute real owner-scoped business effects only after confirmat
     assert.throws(() => proposeTool(db, 'b', 'schedule_review', { recordId: record.recordId, date: '2026-10-31' }));
     assert.equal(planFromMessage('查看明天的计划', undefined, new Date('2026-10-29T15:00:00Z')).params?.date, '2026-10-30');
     assert.ok(planFromMessage('安排复习').missing.length);
+    assert.equal(planFromMessage('安排明天跑步').params?.category, 'exercise');
   } finally { db.close(); }
 });

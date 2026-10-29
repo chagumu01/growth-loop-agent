@@ -1,10 +1,11 @@
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
+import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareBaseline, evaluationEnvironment, executeCases } from "./engine.mjs";
 import { startVectorFixture } from './mock-vectors.mjs';
+import { cleanupEvaluation } from './cleanup.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const arguments_ = process.argv.slice(2);
@@ -36,6 +37,7 @@ let server;
 let build;
 let interrupted = false;
 let vectorFixture;
+const children = [];
 const stop = (child) => {
   if (!child || child.exitCode !== null || child.signalCode !== null) return;
   if (process.platform === "win32") {
@@ -61,6 +63,7 @@ function launch(args, env, onData = () => {}) {
     child.on("error", reject);
     child.on("close", (code) => resolve_({ code, output }));
   });
+  children.push({ child, completion });
   return { child, completion, output: () => output };
 }
 
@@ -138,15 +141,16 @@ try {
     if (step.parallel) return { status: 200, body: { responses: await Promise.all(step.parallel.map(request)) } };
     if (!/^\/api\/[a-z0-9/-]+$/.test(step.path)) throw new Error(`Invalid local API path: ${step.path}`);
     const url = new URL(`${baseUrl}${step.path}`);
+    const actor = step.actor || 'anonymous-evaluation-client';
     for (const [key, value] of Object.entries(step.query || {})) url.searchParams.set(key, String(value));
     const response = await fetch(url, {
       method: step.method || "POST",
-      headers: { "Content-Type": "application/json", Origin: baseUrl, ...(step.actor && cookieJars.has(step.actor) ? { Cookie: cookieJars.get(step.actor) } : {}), ...step.headers },
+      headers: { "Content-Type": "application/json", Origin: baseUrl, ...(cookieJars.has(actor) ? { Cookie: cookieJars.get(actor) } : {}), ...step.headers },
       ...(step.method === "GET" ? {} : { body: step.rawBody ?? JSON.stringify(step.body) }),
       signal: AbortSignal.timeout(mode === "llm" ? 120000 : 10000),
     });
-    if (step.actor && response.headers.has('set-cookie')) {
-      cookieJars.set(step.actor, response.headers.getSetCookie().map(value => value.split(';')[0]).join('; '));
+    if (response.headers.has('set-cookie')) {
+      cookieJars.set(actor, response.headers.getSetCookie().map(value => value.split(';')[0]).join('; '));
     }
     return { status: response.status, body: await response.json(), requestId: response.headers.get('x-request-id') };
   };
@@ -178,15 +182,12 @@ try {
   report = { schemaVersion: 1, mode, versions, errorCategory: "evaluation_setup_failed", message: error.message };
   process.exitCode = 1;
 } finally {
-  stop(build);
-  stop(server);
-  if (vectorFixture) await vectorFixture.close();
-  // Unlink the shared dependency junction before recursively removing only our temp directory.
-  const dependencies = join(sandbox, "node_modules");
-  if (existsSync(dependencies) && lstatSync(dependencies).isSymbolicLink()) unlinkSync(dependencies);
-  const target = resolve(sandbox);
-  if (dirname(target) !== tempRoot || !target.startsWith(`${tempRoot}${sep}growth-loop-eval-`)) throw new Error("Unsafe cleanup target");
-  rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  try {
+    await cleanupEvaluation({ sandbox, tempRoot, children, stop, closeFixture: vectorFixture?.close });
+  } catch (error) {
+    report.cleanup = { status: 'failed', errorCategory: 'cleanup_failed', message: error.message };
+    process.exitCode = 1;
+  }
   process.off("SIGINT", interrupt);
   process.off("SIGTERM", interrupt);
 }
