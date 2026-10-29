@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         : recoverOperation(db, owner, body.id, version);
       if (operation.tool === 'save_record' && operation.status === 'succeeded') {
         const id = JSON.parse(operation.result!).recordId as string;
-        if (getRecord(db, owner, id).index_status === 'pending') indexRecord(db, owner, id);
+        if (getRecord(db, owner, id).index_status === 'pending') await indexRecord(db, owner, id);
       }
       return json({ operation });
     }
