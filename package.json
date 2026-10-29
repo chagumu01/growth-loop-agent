@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "data:test": "tsx --test lib/data/data.test.ts",
-    "test:domain": "npm run data:test",
+    "test:domain": "tsx --test lib/data/data.test.ts lib/memory/auth.test.ts",
     "eval": "node scripts/eval/run.mjs",
     "eval:llm": "node scripts/eval/run.mjs --llm",
     "eval:test": "node --test scripts/eval/engine.test.mjs",
