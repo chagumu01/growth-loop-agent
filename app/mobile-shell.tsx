@@ -159,7 +159,7 @@ export default function MobileAppShell({
           />
         )}
         {activeTab === "课程" && learningStudio}
-        {activeTab === "记录" && <MobileRecordsV3 logs={logs} onOpenComposer={() => openComposer()} />}
+        {activeTab === "记录" && <><Link className="quiet-button" href="/memory">学习记忆 · 检索与来源</Link><MobileRecordsV3 logs={logs} onOpenComposer={() => openComposer()} /></>}
         {activeTab === "成长" && <><Link className="quiet-button" href="/account">账号与个人数据</Link><MobileGrowthV3 earnedCoins={earnedCoins} /></>}
       </div>
 

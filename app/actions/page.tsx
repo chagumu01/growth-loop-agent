@@ -60,7 +60,7 @@ export default function ActionsPage() {
   }
   const activeParams = active ? JSON.parse(active.params) as Record<string, string> : {};
   return <main className="workspace-page" style={{ maxWidth: 840, margin: '24px auto', padding: 20 }}>
-    <Link href="/">← 返回工作台</Link> · <Link href="/account">账号</Link>
+    <Link href="/">← 返回工作台</Link> · <Link href="/account">账号</Link> · <Link href="/memory">学习记忆</Link>
     <h1>我的行动与计划</h1><p>查询直接读取；创建和保存操作会先让你核对，再执行。</p>
     <form className="panel" style={{ padding: 20 }} onSubmit={e => { e.preventDefault(); void perform({ action: 'chat', message: chat, recordId }); }}>
       <label>告诉我你想做什么<input required maxLength={2000} value={chat} onChange={e => setChat(e.target.value)} placeholder="例如：安排明天练习微积分；查看今天的计划" /></label>
