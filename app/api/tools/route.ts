@@ -9,6 +9,7 @@ import { cancelOperation, confirmWithRetry, reviseOperation } from '@/lib/tools/
 import { executeBusinessTool } from '@/lib/tools/executor';
 import { planFromMessage } from '@/lib/tools/planner';
 import { recoverOperation } from '@/lib/tools/recovery';
+import { getRecord, indexRecord } from '@/lib/memory/service';
 
 export const runtime = 'nodejs';
 export async function GET(request: Request) {
@@ -36,8 +37,15 @@ export async function POST(request: Request) {
     const version = body.version as number;
     if (body.action === 'cancel') return json({ operation: cancelOperation(db, owner, body.id, version) });
     if (body.action === 'revise') return json({ operation: reviseOperation(db, owner, body.id, version, body.params) });
-    if (body.action === 'confirm') return json({ operation: confirmWithRetry(db, owner, body.id, version, executeBusinessTool) });
-    if (body.action === 'recover') return json({ operation: recoverOperation(db, owner, body.id, version) });
+    if (body.action === 'confirm' || body.action === 'recover') {
+      const operation = body.action === 'confirm' ? confirmWithRetry(db, owner, body.id, version, executeBusinessTool)
+        : recoverOperation(db, owner, body.id, version);
+      if (operation.tool === 'save_record' && operation.status === 'succeeded') {
+        const id = JSON.parse(operation.result!).recordId as string;
+        if (getRecord(db, owner, id).index_status === 'pending') indexRecord(db, owner, id);
+      }
+      return json({ operation });
+    }
     throw new DomainError('不支持的操作。');
   } catch (error) { return failure(error); }
   finally { db.close(); }
