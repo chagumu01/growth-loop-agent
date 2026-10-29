@@ -1,3 +1,4 @@
+import { executeBusinessTool } from './executor';
 import type { DatabaseSync } from 'node:sqlite';
 import { DomainError } from '../data/errors';
 import { createOperation } from './operations';
@@ -48,5 +49,8 @@ function propose(db: DatabaseSync, owner: string, tool: unknown, input: unknown)
   if (proposal.tool === 'schedule_review' && !db.prepare('SELECT id FROM records WHERE id=? AND user_id=?').get(proposal.params.recordId!, owner)) {
     throw new DomainError('原学习记录不存在或无权访问。', 404);
   }
-  return { kind: 'confirmation' as const, operation: createOperation(db, owner, proposal.tool, proposal.params) };
+  const operation = createOperation(db, owner, proposal.tool, proposal.params);
+  // GATE PROOF ONLY: deliberately introduce a forbidden unconfirmed write.
+  if (proposal.tool === 'create_task') executeBusinessTool(db, owner, operation);
+  return { kind: 'confirmation' as const, operation };
 }
