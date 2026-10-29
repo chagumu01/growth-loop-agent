@@ -138,7 +138,7 @@ function cosine(a: number[], b: number[]) {
   const norm = Math.hypot(...a) * Math.hypot(...b);
   return norm ? a.reduce((sum, n, i) => sum + n * b[i], 0) / norm : 0;
 }
-export async function searchMemory(db: DatabaseSync, owner: string, query: string) {
+export async function searchMemory(db: DatabaseSync, owner: string, query: string, options: { strategy?: 'keyword' | 'hybrid'; limit?: number } = {}) {
   query = text(query, '问题', 500);
   const chunks = db.prepare('SELECT c.*,r.title,r.kind,r.created_at FROM chunks c JOIN records r ON r.id=c.record_id AND r.version=c.version WHERE r.user_id=? ORDER BY r.updated_at DESC').all(owner) as unknown as Chunk[];
   const queryTerms = terms(query);
@@ -150,7 +150,7 @@ export async function searchMemory(db: DatabaseSync, owner: string, query: strin
   }).filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 20);
   let mode = 'keyword', warning = '';
   let semantic: { c: Chunk; score: number }[] = [];
-  const config = embeddingConfig();
+  const config = options.strategy === 'keyword' ? null : embeddingConfig();
   if (config) {
     try {
       const [vector] = await embed([query], config);
@@ -170,7 +170,7 @@ export async function searchMemory(db: DatabaseSync, owner: string, query: strin
     // Re-check after the asynchronous embedding request, including deletions and ownership.
     const valid = db.prepare('SELECT version FROM records WHERE id=? AND user_id=?').get(chunk.record_id, owner) as { version: number } | undefined;
     if (valid?.version === chunk.version && !selected.some(c => c.record_id === chunk.record_id)) selected.push(chunk);
-    if (selected.length === 5) break;
+    if (selected.length === Math.max(1, Math.min(10, options.limit || 5))) break;
   }
   const citations: Citation[] = selected.map(c => ({ recordId: c.record_id, chunkId: c.id, title: c.title, content: c.content, version: c.version, createdAt: c.created_at, kind: c.kind }));
   // Extractive answers keep every statement grounded, without executing instructions in retrieved notes.

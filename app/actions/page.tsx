@@ -43,14 +43,18 @@ export default function ActionsPage() {
       const data = await request(body);
       if (data.clarification) setMessage(data.clarification);
       if (data.operation) {
-        setActive(data.operation);
+        edit(data.operation);
         setMessage(data.operation.status === 'succeeded' ? '操作已完成。' : data.operation.status === 'pending' ? '请核对内容后确认。' : states[data.operation.status]);
       }
-      if (data.tasks) { setTasks(data.tasks); setMessage(data.tasks.length ? '已读取本人计划。' : '所选日期暂无任务。'); }
+      if (data.tasks) { setTasks(data.tasks); setActive(null); setMessage(data.tasks.length ? '已读取本人计划。' : '所选日期暂无任务。'); }
       const list = await request(); setOperations(list.operations || []); setRecords(list.records || []);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '操作失败。');
-      try { const list = await request(); setOperations(list.operations || []); } catch { /* Preserve original failure. */ }
+      try {
+        const list = await request(); setOperations(list.operations || []);
+        const current = list.operations?.find(op => op.id === (body as { id?: string }).id);
+        if (current) setActive(current);
+      } catch { /* Preserve original failure. */ }
     } finally { setBusy(false); }
   }
   function edit(op: Operation) {
@@ -79,7 +83,7 @@ export default function ActionsPage() {
     {message.includes('登录') && <Link href="/account">先登录或创建账号</Link>}
     {active && <section className="panel" style={{ padding: 20, marginTop: 16 }} aria-label="操作确认卡">
       <h2>{names[active.tool]} · {states[active.status]}</h2>
-      {Object.entries(activeParams).map(([key, value]) => <p key={key}><strong>{{ title: '标题', date: '日期', content: '内容', source: '来源', category: '分类', recordId: '复习记录' }[key] || key}：</strong>{key === 'recordId' ? records.find(r => r.id === value)?.title || '原记录' : value}</p>)}
+      {Object.entries(activeParams).map(([key, value]) => <p key={key}><strong>{{ title: '标题', date: '日期', content: '内容', source: '来源', category: '分类', recordId: '复习记录' }[key] || key}：</strong>{key === 'recordId' ? records.find(r => r.id === value)?.title || '原记录' : key === 'category' ? ({ learn: '学习', focus: '专注', exercise: '运动', life: '生活', rest: '休息' } as Record<string, string>)[value] || value : value}</p>)}
       {active.status === 'pending' && <><p>有效期至 {new Date(active.expires_at).toLocaleString('zh-CN')}。修改后须重新确认。</p>
         <button className="primary-button" disabled={busy} onClick={() => void perform({ action: 'confirm', id: active.id, version: active.version })}>确认执行</button>{' '}
         <button className="quiet-button" disabled={busy} onClick={() => void perform({ action: 'cancel', id: active.id, version: active.version })}>取消操作</button></>}

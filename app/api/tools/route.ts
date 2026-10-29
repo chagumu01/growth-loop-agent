@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         const id = JSON.parse(operation.result!).recordId as string;
         if (getRecord(db, owner, id).index_status === 'pending') await indexRecord(db, owner, id);
       }
-      return json({ operation });
+      return json({ operation, result: operation.result ? JSON.parse(operation.result) : null });
     }
     throw new DomainError('不支持的操作。');
   } catch (error) { return failure(error); }
