@@ -522,6 +522,7 @@ export default function Home() {
         </div>
 
         <div className="sidebar-bottom">
+          <Link className="help-link" href="/memory">学习记忆与来源</Link>
           <Link className="help-link" href="/account">账号与个人数据</Link>
           <button className="help-link" onClick={() => notify("小贴士：把下一步缩小到 10 分钟，先留下事实，晚报时再补充结果。")}><CircleHelp size={16} /> 使用小贴士</button>
           <div className="profile-chip">

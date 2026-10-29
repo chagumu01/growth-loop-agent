@@ -35,6 +35,7 @@ export default function AccountPage() {
     {loading ? <p>正在读取账号…</p> : user ? <section className="panel" style={{ padding: 24 }}>
       <p>已登录：{user}</p><button className="quiet-button" disabled={busy} onClick={() => void submit('logout')}>退出登录</button>
       <p><Link href="/actions">进入我的行动与计划 →</Link></p>
+      <p><Link href="/memory">学习记忆、检索与原文 →</Link></p>
     </section> : <form className="panel" style={{ display: 'grid', gap: 16, padding: 24 }} onSubmit={e => { e.preventDefault(); void submit(register ? 'register' : 'login'); }}>
       <h2>{register ? '创建账号' : '登录'}</h2>
       <label>账号<input style={{ display: 'block', width: '100%' }} required minLength={3} maxLength={40} pattern="[a-zA-Z0-9_\-]+" autoComplete="username" value={name} onChange={e => setName(e.target.value)} /></label>
