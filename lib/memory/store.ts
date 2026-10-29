@@ -16,6 +16,13 @@ const migrations = [String.raw`
     record_id TEXT REFERENCES records(id) ON DELETE SET NULL, external_id TEXT,
     created_at TEXT NOT NULL, UNIQUE(user_id,external_id));
   CREATE INDEX tasks_owner_date ON tasks(user_id,date);
+`, String.raw`
+  CREATE TABLE operations(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
+    tool TEXT NOT NULL, params TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL CHECK(status IN ('pending','cancelled','expired','running','succeeded','failed','uncertain')),
+    idempotency_key TEXT UNIQUE NOT NULL, result TEXT, error_category TEXT, attempts INTEGER NOT NULL DEFAULT 0,
+    expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+  CREATE INDEX operations_owner ON operations(user_id,created_at);
 `];
 
 export function openDatabase(path = process.env.MEMORY_DB_PATH || resolve('.data', 'memory.sqlite')) {
