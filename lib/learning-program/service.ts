@@ -1,3 +1,4 @@
+import { modelFetch } from '../observability/trace';
 import type {
   CourseGenerationInput,
   CourseLesson,
@@ -289,7 +290,7 @@ async function requestLlm(
   if (!config) return null;
 
   try {
-    const response = await fetch(`${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    const response = await modelFetch('model', `${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiKey}`,

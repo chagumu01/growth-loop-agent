@@ -1,3 +1,4 @@
+import { traceRequest } from '@/lib/observability/trace';
 import { NextResponse } from "next/server";
 import { generateLearningQuiz, gradeLearningQuiz, type GeneratedQuiz, type QuizQuestion } from "@/lib/agent/quiz";
 
@@ -49,7 +50,7 @@ function reconstructQuiz(input: Record<string, unknown>, questions: QuizQuestion
   };
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -94,3 +95,5 @@ export async function POST(request: Request) {
     return errorResponse(error instanceof Error ? error.message : "invalid quiz request");
   }
 }
+
+export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }

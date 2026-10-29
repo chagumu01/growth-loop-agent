@@ -1,3 +1,4 @@
+import { traceRequest } from '@/lib/observability/trace';
 import { NextResponse } from "next/server";
 
 import {
@@ -50,13 +51,13 @@ function answerMap(value: unknown) {
   );
 }
 
-export async function GET() {
+async function handleGET() {
   return NextResponse.json(getLearningProgramStatus(), {
     headers: { "Cache-Control": "no-store" },
   });
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     const body = asBody(await request.json());
     const action = optionalText(body.action, 24);
@@ -100,3 +101,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
+
+export async function GET(request: Request) { return traceRequest(request, () => handleGET()); }
+
+export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }

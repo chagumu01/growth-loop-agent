@@ -51,7 +51,7 @@ function launch(args, env, onData = () => {}) {
   let output = "";
   for (const stream of [child.stdout, child.stderr]) stream.on("data", (chunk) => {
     output = (output + chunk.toString()).slice(-16000);
-    onData(output);
+    onData(output, chunk.toString(), stream === child.stdout);
   });
   const completion = new Promise((resolve_, reject) => {
     child.on("error", reject);
@@ -77,11 +77,21 @@ try {
 
   console.error("[eval] Starting isolated server on an ephemeral loopback port...");
   let baseUrl;
+  const traces = [];
+  let traceBuffer = '';
   let serving;
   const startServer = async () => {
     baseUrl = undefined;
-    serving = launch(['start', '--hostname', '127.0.0.1', '--port', '0'], runtimeEnv, (output) => {
+    traceBuffer = '';
+    serving = launch(['start', '--hostname', '127.0.0.1', '--port', '0'], { ...runtimeEnv, APP_VERSION: versions.commit }, (output, chunk, stdout) => {
       baseUrl = output.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
+      if (stdout) {
+        traceBuffer += chunk;
+        const lines = traceBuffer.split('\n'); traceBuffer = lines.pop();
+        for (const line of lines) {
+          try { const value = JSON.parse(line); if (value.event === 'growth-loop.request') traces.push(value); } catch { /* Framework output is not a request trace. */ }
+        }
+      }
     });
     server = serving.child;
     let serverError;
@@ -121,7 +131,7 @@ try {
     if (step.actor && response.headers.has('set-cookie')) {
       cookieJars.set(step.actor, response.headers.getSetCookie().map(value => value.split(';')[0]).join('; '));
     }
-    return { status: response.status, body: await response.json() };
+    return { status: response.status, body: await response.json(), requestId: response.headers.get('x-request-id') };
   };
   const results = await executeCases(suite.cases, request, { mode });
   const baselineFile = join(root, "scripts/eval/baseline.json");
@@ -142,6 +152,7 @@ try {
     promptVersionBasis: "sourceHashes identify entire provider files, including prompts; not separate prompt revisions",
     isolation: { freshServer: true, temporaryDirectory: true, personalEnvFilesCopied: false,
       seedUnchanged, database: "isolated SQLite; authenticated HTTP and restart checks", businessWritesVerified: results.some(result => result.id === "plan-query" && result.status === "passed") },
+    observability: { traces, modelCalls: traces.flatMap(trace => trace.spans).filter(span => span.stage === 'model' || span.stage === 'embedding').length },
     summary, results,
   };
   process.exitCode = summary.failed || interrupted ? 1 : 0;

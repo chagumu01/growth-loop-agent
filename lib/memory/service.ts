@@ -1,3 +1,4 @@
+import { modelFetch, recordRetrieval, traceStage } from '../observability/trace';
 import { createHash, randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { MemoryError } from './auth';
@@ -117,7 +118,7 @@ function embeddingConfig() {
   return url && key && model ? { url, key, model } : null;
 }
 async function embed(input: string[], config: NonNullable<ReturnType<typeof embeddingConfig>>) {
-  const response = await fetch(`${config.url.replace(/\/$/, '')}/embeddings`, {
+  const response = await modelFetch('embedding', `${config.url.replace(/\/$/, '')}/embeddings`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.key}` },
     body: JSON.stringify({ model: config.model, input }), signal: AbortSignal.timeout(15000),
   });
@@ -139,6 +140,9 @@ function cosine(a: number[], b: number[]) {
   return norm ? a.reduce((sum, n, i) => sum + n * b[i], 0) / norm : 0;
 }
 export async function searchMemory(db: DatabaseSync, owner: string, query: string, options: { strategy?: 'keyword' | 'hybrid'; limit?: number } = {}) {
+  return traceStage('retrieval', () => retrieveMemory(db, owner, query, options));
+}
+async function retrieveMemory(db: DatabaseSync, owner: string, query: string, options: { strategy?: 'keyword' | 'hybrid'; limit?: number }) {
   query = text(query, '问题', 500);
   const chunks = db.prepare('SELECT c.*,r.title,r.kind,r.created_at FROM chunks c JOIN records r ON r.id=c.record_id AND r.version=c.version WHERE r.user_id=? ORDER BY r.updated_at DESC').all(owner) as unknown as Chunk[];
   const queryTerms = terms(query);
@@ -175,5 +179,6 @@ export async function searchMemory(db: DatabaseSync, owner: string, query: strin
   const citations: Citation[] = selected.map(c => ({ recordId: c.record_id, chunkId: c.id, title: c.title, content: c.content, version: c.version, createdAt: c.created_at, kind: c.kind }));
   // Extractive answers keep every statement grounded, without executing instructions in retrieved notes.
   const answer = citations.length ? `找到以下相关原始记录；内容是历史证据，不代表当前掌握程度：\n${citations.map((c, i) => `[${i + 1}] ${c.title}：${c.content}`).join('\n\n')}${/掌握|薄弱|不会/.test(query) ? '\n\n仅能依据反馈记录判断当时的表现；缺少测验反馈时，无法判断哪些知识点尚未掌握。' : ''}` : '没有找到足够的相关学习记录，暂时无法根据历史证据回答。请补充笔记或换一个具体知识点。';
+  recordRetrieval(mode, Math.max(1, Math.min(10, options.limit || 5)));
   return { answer, citations, mode, warning };
 }

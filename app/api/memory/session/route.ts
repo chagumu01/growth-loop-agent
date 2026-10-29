@@ -1,16 +1,17 @@
+import { traceRequest } from '@/lib/observability/trace';
 import { cookies } from 'next/headers';
 import { authenticate, hashToken, login, MemoryError, SESSION_COOKIE } from '@/lib/memory/auth';
 import { openDatabase } from '@/lib/memory/store';
 import { failure, json, readBody } from '@/lib/memory/http';
 
 export const runtime = 'nodejs';
-export async function GET() {
+async function handleGET() {
   const db = openDatabase();
   try { return json({ user: authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value) }); }
   catch (error) { return failure(error); }
   finally { db.close(); }
 }
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const db = openDatabase();
   try {
     const body = await readBody(request);
@@ -39,3 +40,7 @@ export async function POST(request: Request) {
   } catch (error) { return failure(error); }
   finally { db.close(); }
 }
+
+export async function GET(request: Request) { return traceRequest(request, () => handleGET()); }
+
+export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }
