@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
@@ -29,7 +28,7 @@ import {
 } from "lucide-react";
 import { demoSeed, type Goal, type Task, type TaskKind, weeklyBars } from "@/lib/demo-data";
 
-export type MobileTab = "今日" | "计划" | "记录" | "成长" | "课程" | "学习记忆" | "行动与计划";
+export type MobileTab = "今日" | "计划" | "记录" | "成长" | "课程" | "学习记忆" | "行动与计划" | "账号与个人数据";
 
 type MobileLiveLog = {
   id: string;
@@ -66,6 +65,9 @@ type MobileAppShellProps = {
   learningStudio: ReactNode;
   memoryPanel: ReactNode;
   actionsPanel: ReactNode;
+  accountPanel: ReactNode;
+  profileName: string;
+  avatarLabel: string;
 };
 
 const mobileTabs: Array<{ label: MobileTab; icon: typeof LayoutDashboard; short: string }> = [
@@ -98,6 +100,9 @@ export default function MobileAppShell({
   learningStudio,
   memoryPanel,
   actionsPanel,
+  accountPanel,
+  profileName,
+  avatarLabel,
 }: MobileAppShellProps) {
   const [composerOpen, setComposerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -130,7 +135,7 @@ export default function MobileAppShell({
         </div>
         <div className="app-mobile-v3-top-actions">
           <span className="app-mobile-v3-streak"><Flame size={14} /> {demoSeed.user.streak}</span>
-          <button className="app-mobile-v3-avatar" aria-label="打开个人资料">{demoSeed.user.displayName.slice(0, 1)}</button>
+          <button className="app-mobile-v3-avatar" aria-label={`打开账号与个人数据：${profileName}`} onClick={() => onNavigate("账号与个人数据")}>{avatarLabel}</button>
         </div>
       </header>
 
@@ -169,13 +174,14 @@ export default function MobileAppShell({
           />
         )}
         {activeTab === "课程" && learningStudio}
+        {activeTab === "账号与个人数据" && accountPanel}
         {activeTab === "学习记忆" && memoryPanel}
         {activeTab === "行动与计划" && actionsPanel}
         {activeTab === "记录" && <><button className="quiet-button" onClick={() => onNavigate("学习记忆")}>学习记忆 · 检索与来源</button><MobileRecordsV3 logs={logs} onOpenComposer={() => openComposer()} /></>}
-        {activeTab === "成长" && <><Link className="quiet-button" href="/account">账号与个人数据</Link><MobileGrowthV3 earnedCoins={earnedCoins} /></>}
+        {activeTab === "成长" && <><button className="quiet-button" onClick={() => onNavigate("账号与个人数据")}>账号与个人数据</button><MobileGrowthV3 earnedCoins={earnedCoins} /></>}
       </div>
 
-      {!isHome && activeTab !== "课程" && activeTab !== "学习记忆" && activeTab !== "行动与计划" && <button className="app-mobile-v3-fab" onClick={() => openComposer()} aria-label="打开随手记录">
+      {!isHome && activeTab !== "课程" && activeTab !== "学习记忆" && activeTab !== "行动与计划" && activeTab !== "账号与个人数据" && <button className="app-mobile-v3-fab" onClick={() => openComposer()} aria-label="打开随手记录">
         <Plus size={20} strokeWidth={2.8} />
         <span>记录</span>
       </button>}
