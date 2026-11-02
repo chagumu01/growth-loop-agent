@@ -1,7 +1,173 @@
 {
-  "version": "2026-10-29.v2",
+  "version": "2026-11-02.v3",
   "dataPolicy": "Synthetic fixtures only; pending capabilities never count as passed.",
   "cases": [
+    {
+      "id": "skill-course-telemetry",
+      "category": "procedural-memory",
+      "capability": "implemented",
+      "initialData": {
+        "storage": "isolated synthetic SQLite"
+      },
+      "allowedOperations": [
+        "register",
+        "generate course",
+        "read owner metrics"
+      ],
+      "expectedBusinessState": "Six candidate seeds and one recorded course request; no unvalidated active hit.",
+      "steps": [
+        {
+          "path": "/api/skills",
+          "method": "GET",
+          "actor": "skill-anon",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 401
+            }
+          ]
+        },
+        {
+          "path": "/api/memory/session",
+          "actor": "skill-owner",
+          "body": {
+            "action": "register",
+            "name": "skill_eval_owner",
+            "password": "synthetic-eval-password"
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            }
+          ]
+        },
+        {
+          "path": "/api/learning-program",
+          "actor": "skill-owner",
+          "body": {
+            "action": "generate",
+            "subject": "Agent",
+            "goal": "理解工具调用",
+            "lessonCount": 3
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.program.lessons",
+              "length": 3
+            }
+          ]
+        },
+        {
+          "path": "/api/skills",
+          "method": "GET",
+          "actor": "skill-owner",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.skills",
+              "length": 6
+            },
+            {
+              "path": "body.metrics.requests",
+              "equals": 1
+            },
+            {
+              "path": "body.metrics.hitRate",
+              "equals": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verification-conservative-fallback",
+      "category": "adversarial-verification",
+      "capability": "implemented",
+      "initialData": {
+        "storage": "isolated synthetic SQLite, role providers unavailable in rules mode"
+      },
+      "allowedOperations": [
+        "register",
+        "generate quiz",
+        "read verification metrics"
+      ],
+      "expectedBusinessState": "No unverified trap is served; metric denominator stays unknown when verifier has no trials.",
+      "steps": [
+        {
+          "path": "/api/verification",
+          "method": "GET",
+          "actor": "verify-anon",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 401
+            }
+          ]
+        },
+        {
+          "path": "/api/memory/session",
+          "actor": "verify-owner",
+          "body": {
+            "action": "register",
+            "name": "verify_eval_owner",
+            "password": "synthetic-eval-password"
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            }
+          ]
+        },
+        {
+          "path": "/api/quiz",
+          "actor": "verify-owner",
+          "body": {
+            "action": "generate",
+            "topic": "事务",
+            "content": "事务提交后需要补偿操作，不能直接回滚。"
+          },
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.questions.length",
+              "min": 2,
+              "max": 3
+            },
+            {
+              "path": "body.internalQuestions",
+              "absent": true
+            }
+          ]
+        },
+        {
+          "path": "/api/verification",
+          "method": "GET",
+          "actor": "verify-owner",
+          "checks": [
+            {
+              "path": "status",
+              "equals": 200
+            },
+            {
+              "path": "body.verifierPassRate",
+              "equals": null
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "agent-status",
       "category": "configuration",

@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "suiteVersion": "2026-10-29.v2",
-  "suiteHash": "fe08f6f24393e9bcdd076cbbfd2b27d1c5ac5593002ed94b36f6c8b539ef98c1",
+  "suiteVersion": "2026-11-02.v3",
+  "suiteHash": "501c9bf3c6996eee150b0856da234484fc3568bbc35cdcc18d69314e5c212810",
   "sourceHashes": {
     "lib/agent/provider.ts": "929757cc140723c13b571b66f286810abd60031df6e0b3440350ec2c781dfadf",
     "lib/agent/understanding.ts": "ff2f80ad1ecf80f226a5f552c8636768e4fc5534ed613fe9b1eb3f929f58cdc8",
-    "lib/agent/quiz.ts": "18a728c910660245bc5608a03825b10937eee627c089e92960125a54d2765b98",
-    "lib/learning-program/service.ts": "49e7ae252090720c36f84ff82409ce7718df934f20d978d0cc4ab9c54152b95d"
+    "lib/agent/quiz.ts": "813dbf13674d1a5cf37856b9580de4bf1effd6bf1995e6d6aeadacff69946acb",
+    "lib/learning-program/service.ts": "4ec04704bcab7bc0910308629ff27d1a0e13c4ba2b0a402ae4f78d20483fe381"
   },
   "model": {
     "provider": "demo",
     "model": null
   },
   "summary": {
-    "passed": 31,
+    "passed": 33,
     "failed": 0,
     "not_implemented": 0
   },
@@ -140,6 +140,14 @@
     },
     {
       "id": "retrieval-update-delete",
+      "status": "passed"
+    },
+    {
+      "id": "skill-course-telemetry",
+      "status": "passed"
+    },
+    {
+      "id": "verification-conservative-fallback",
       "status": "passed"
     }
   ]
