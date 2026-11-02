@@ -1,4 +1,5 @@
 import { traceRequest } from '@/lib/observability/trace';
+import { withLearningContext } from '@/lib/memory/learning-context';
 import { NextResponse } from "next/server";
 
 import {
@@ -65,13 +66,13 @@ async function handlePOST(request: Request) {
     if (action === "generate") {
       const weeklyHours = Math.max(1, Math.min(20, Number(body.weeklyHours) || 4));
       const lessonCount = Math.max(3, Math.min(5, Number(body.lessonCount) || 5));
-      const program = await generateLearningProgram({
+      const program = await withLearningContext(context => generateLearningProgram({
         subject: requiredText(body.subject, "学习主题", 180),
         goal: requiredText(body.goal, "学习目标", 500),
         background: optionalText(body.background, 500),
         weeklyHours,
         lessonCount,
-      });
+      }, context));
       return NextResponse.json({ program });
     }
 
