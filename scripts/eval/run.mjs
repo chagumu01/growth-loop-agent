@@ -33,6 +33,8 @@ try {
 const tempRoot = realpathSync(dirname(root));
 const sandbox = mkdtempSync(join(tempRoot, "growth-loop-eval-"));
 const runtimeEnv = evaluationEnvironment(process.env, sandbox, mode);
+// Exercise conservative question fallback without inheriting independent role credentials.
+if (mode === 'rules') runtimeEnv.VERIFICATION_ENABLED = 'true';
 let server;
 let build;
 let interrupted = false;

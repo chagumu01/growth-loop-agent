@@ -98,7 +98,7 @@ export async function executeCases(cases, request, { mode = "rules", retrieval =
 export function evaluationEnvironment(source, directory, mode = "rules") {
   const environment = { ...source };
   for (const key of Object.keys(environment)) {
-    if (/^(LLM_|OPENAI_|DEEPSEEK_|GLM_|WECHAT_|MEMORY_)/.test(key)) delete environment[key];
+    if (/^(LLM_|OPENAI_|DEEPSEEK_|GLM_|WECHAT_|MEMORY_|VERIFICATION_)/.test(key)) delete environment[key];
   }
   if (mode === "llm") {
     for (const [key, value] of Object.entries(source)) {

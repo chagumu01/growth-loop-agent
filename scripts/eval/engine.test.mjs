@@ -55,11 +55,12 @@ test("network failures carry request-stage evidence", async () => {
 test("default mode strips inherited live credentials and redirects persistent storage", () => {
   const source = { PATH: "tools", LLM_PROVIDER: "openai", LLM_API_KEY: "synthetic-key",
     OPENAI_API_KEY: "synthetic-key", DEEPSEEK_API_KEY: "synthetic-key", GLM_MODEL: "live",
-    WECHAT_TOKEN: "synthetic-key", MEMORY_DB_PATH: "personal.sqlite", MEMORY_EMBEDDING_API_KEY: "synthetic-key" };
+    WECHAT_TOKEN: "synthetic-key", MEMORY_DB_PATH: "personal.sqlite", MEMORY_EMBEDDING_API_KEY: "synthetic-key",
+    VERIFICATION_JUDGE_API_KEY: "synthetic-key", VERIFICATION_ENABLED: "true" };
   const rules = evaluationEnvironment(source, "/temporary/evaluation");
   assert.equal(rules.PATH, "tools");
   assert.equal(rules.LLM_PROVIDER, "demo");
-  for (const key of ["LLM_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "GLM_MODEL", "WECHAT_TOKEN", "MEMORY_EMBEDDING_API_KEY"]) {
+  for (const key of ["LLM_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "GLM_MODEL", "WECHAT_TOKEN", "MEMORY_EMBEDDING_API_KEY", "VERIFICATION_JUDGE_API_KEY", "VERIFICATION_ENABLED"]) {
     assert.equal(rules[key], undefined);
   }
   assert.equal(rules.MEMORY_DB_PATH, "/temporary/evaluation/memory.sqlite");

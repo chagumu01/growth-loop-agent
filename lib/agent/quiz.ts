@@ -1,4 +1,6 @@
 import { modelFetch } from '../observability/trace';
+import type { LearningContext } from '../skill/store';
+import { addVerifiedTrap, gradeVerifiedTrap, storedQuiz, recordComparison } from '../verification/service';
 import type { AgentIntent } from "./provider";
 
 export type QuizQuestion = {
@@ -38,7 +40,8 @@ export type QuizGrade = {
   feedback: QuizFeedback[];
   mode: "demo" | "llm";
   provider: string;
-  gradedBy: "llm" | "rules";
+  gradedBy: "llm" | "rules" | "judge";
+  verification?: NonNullable<Awaited<ReturnType<typeof gradeVerifiedTrap>>>;
 };
 
 type LlmCallResult = {
@@ -224,7 +227,12 @@ function modelQuestions(value: unknown, fallback: GeneratedQuiz) {
   };
 }
 
-export async function generateLearningQuiz(content: string, topic?: string, output?: string): Promise<GeneratedQuiz> {
+export async function generateLearningQuiz(content: string, topic?: string, output?: string, context?: LearningContext): Promise<GeneratedQuiz> {
+  const quiz = await generateOrdinaryQuiz(content, topic, output);
+  return context ? addVerifiedTrap(context, quiz) : quiz;
+}
+
+async function generateOrdinaryQuiz(content: string, topic?: string, output?: string): Promise<GeneratedQuiz> {
   const fallback = buildRuleQuiz(content, topic, output);
   const llm = await callLlm([
     {
@@ -308,7 +316,25 @@ function normalizeFeedback(value: unknown, quiz: GeneratedQuiz, answers: Record<
   });
 }
 
-export async function gradeLearningQuiz(quiz: GeneratedQuiz, answers: Record<string, string>): Promise<QuizGrade> {
+export async function gradeLearningQuiz(quiz: GeneratedQuiz, answers: Record<string, string>, context?: LearningContext): Promise<QuizGrade> {
+  const stored = context ? storedQuiz(context, quiz.quizId) : undefined;
+  if (!stored || !context) return gradeOrdinaryQuiz(quiz, answers);
+  const original = stored.quiz;
+  const ordinary = { ...original, questions: original.questions.filter(q => q.id !== stored.trap.id), internalQuestions: original.internalQuestions.filter(q => q.id !== stored.trap.id) };
+  const result = await gradeOrdinaryQuiz(ordinary, Object.fromEntries(ordinary.questions.map(q => [q.id, answers[q.id] || ''])));
+  const verification = await gradeVerifiedTrap(context, original.quizId, answers[stored.trap.id] || '');
+  if (!verification) return result;
+  try { recordComparison(context, original.quizId, result, verification, answers); } catch { /* Evaluation capture cannot invalidate grading. */ }
+  const trapScore = verification.abstained ? 0 : verification.verdict === 'caught' ? 100 : 0;
+  const score = verification.abstained ? result.score : Math.min(verification.requiresRelearning ? 59 : 100, Math.round((result.score * ordinary.questions.length + trapScore) / original.questions.length));
+  return { ...result, score, level: verification.requiresRelearning ? '需要回看' : result.level,
+    gradedBy: verification.gradedBy, verification,
+    summary: verification.requiresRelearning ? `发现理解偏差：${verification.user_belief}` : result.summary,
+    nextHabit: verification.requiresRelearning ? `重新学习「${verification.concept}」，解释错误成立的条件后再测。` : result.nextHabit,
+    feedback: [...result.feedback, { questionId: stored.trap.id, score: trapScore, comment: verification.user_belief, modelAnswer: verification.abstained ? '等待人工复核。' : stored.trap.correct_version }] };
+}
+
+async function gradeOrdinaryQuiz(quiz: GeneratedQuiz, answers: Record<string, string>): Promise<QuizGrade> {
   const fallback = ruleGrade(quiz, answers);
   const llm = await callLlm([
     {
