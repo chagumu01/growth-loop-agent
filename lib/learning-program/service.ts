@@ -1,6 +1,9 @@
 import { modelFetch } from '../observability/trace';
 import { modelCallCount } from '../observability/trace';
 import { collectRun, type LearningContext } from '../skill/store';
+import { extractSkill, skillFeatures } from '../skill/extract';
+import { findCourseSkill, validateShadow } from '../skill/course';
+import { seedCourseSkills } from '../skill/seeds';
 import type {
   CourseGenerationInput,
   CourseLesson,
@@ -405,9 +408,19 @@ function normalizeProgram(raw: UnknownRecord, fallback: LearningProgram): Learni
 export async function generateLearningProgram(input: CourseGenerationInput, context?: LearningContext): Promise<LearningProgram> {
   const started = performance.now(), calls = modelCallCount();
   try {
+    let selected: Awaited<ReturnType<typeof findCourseSkill>> = {};
+    if (context) try { seedCourseSkills(context, fallbackProgram); selected = await findCourseSkill(context, input); } catch { /* Original generation remains available. */ }
+    if (selected.result) {
+      collectRun(context, { taskType: 'course.generate', features: skillFeatures(input), steps: { input, result: selected.result }, outcome: 'success', durationMs: performance.now() - started, modelCalls: modelCallCount() - calls });
+      return selected.result;
+    }
     const result = await generateProgram(input);
     collectRun(context, { taskType: 'course.generate', features: { subject: input.subject.trim().toLowerCase(), background: Boolean(input.background) },
       steps: { input, result }, outcome: result.mode === 'llm' ? 'success' : 'failed', durationMs: performance.now() - started, modelCalls: modelCallCount() - calls });
+    if (context) try {
+      if (selected.shadow) validateShadow(context, input, selected.shadow, result);
+      await extractSkill(context, input, requestLlm);
+    } catch { /* Skill maintenance cannot invalidate a completed course. */ }
     return result;
   } catch (error) {
     collectRun(context, { taskType: 'course.generate', features: { subject: input.subject.trim().toLowerCase(), background: Boolean(input.background) },
