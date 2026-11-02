@@ -8,4 +8,9 @@ async function main() {
     console.log(JSON.stringify({ event: 'database_migrated', version: row?.user_version }));
   } finally { db.close(); }
 }
-main().catch(() => { console.error('Cloud database migration failed; verify configuration and schema compatibility.'); process.exitCode = 1; });
+main().catch(error => {
+  const message = error instanceof Error ? error.message : 'unknown';
+  console.error(JSON.stringify({ event: 'database_migration_failed',
+    message: message.replace(/(?:libsql|https?):\/\/[^\s]+/g, '[database]').replace(/eyJ[A-Za-z0-9_.-]+/g, '[redacted]') }));
+  process.exitCode = 1;
+});
