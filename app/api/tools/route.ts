@@ -14,36 +14,36 @@ import { getRecord, indexRecord } from '@/lib/memory/service';
 
 export const runtime = 'nodejs';
 async function handleGET(request: Request) {
-  const db = openDatabase();
+  const db = await openDatabase();
   try {
-    const owner = authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value).id;
+    const owner = (await authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value)).id;
     const id = new URL(request.url).searchParams.get('id');
-    return json(id ? { operation: getOperation(db, owner, id) } : { operations: listOperations(db, owner),
-      records: db.prepare('SELECT id,title FROM records WHERE user_id=? ORDER BY updated_at DESC LIMIT 100').all(owner) });
+    return json(id ? { operation: (await getOperation(db, owner, id)) } : { operations: (await listOperations(db, owner)),
+      records: (await db.prepare('SELECT id,title FROM records WHERE user_id=? ORDER BY updated_at DESC LIMIT 100').all(owner)) });
   } catch (error) { return failure(error); }
   finally { db.close(); }
 }
 async function handlePOST(request: Request) {
-  const db = openDatabase();
+  const db = await openDatabase();
   try {
-    const owner = authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value).id;
+    const owner = (await authenticate(db, (await cookies()).get(SESSION_COOKIE)?.value)).id;
     const body = await readBody(request);
     if (body.action === 'chat') {
       const proposal = planFromMessage(body.message, typeof body.recordId === 'string' ? body.recordId : undefined);
       if (proposal.missing.length) return json({ clarification: proposal.missing.join(' ') });
-      return json(proposeTool(db, owner, proposal.tool, proposal.params));
+      return json((await proposeTool(db, owner, proposal.tool, proposal.params)));
     }
-    if (body.action === 'propose') return json(proposeTool(db, owner, body.tool, body.params));
+    if (body.action === 'propose') return json((await proposeTool(db, owner, body.tool, body.params)));
     if (typeof body.id !== 'string' || !Number.isInteger(body.version)) throw new DomainError('缺少操作与确认版本。');
     const version = body.version as number;
-    if (body.action === 'cancel') return json({ operation: cancelOperation(db, owner, body.id, version) });
-    if (body.action === 'revise') return json({ operation: reviseOperation(db, owner, body.id, version, body.params) });
+    if (body.action === 'cancel') return json({ operation: (await cancelOperation(db, owner, body.id, version)) });
+    if (body.action === 'revise') return json({ operation: (await reviseOperation(db, owner, body.id, version, body.params)) });
     if (body.action === 'confirm' || body.action === 'recover') {
-      const operation = body.action === 'confirm' ? confirmWithRetry(db, owner, body.id, version, executeBusinessTool)
-        : recoverOperation(db, owner, body.id, version);
+      const operation = body.action === 'confirm' ? (await confirmWithRetry(db, owner, body.id, version, executeBusinessTool))
+        : (await recoverOperation(db, owner, body.id, version));
       if (operation.tool === 'save_record' && operation.status === 'succeeded') {
         const id = JSON.parse(operation.result!).recordId as string;
-        if (getRecord(db, owner, id).index_status === 'pending') await indexRecord(db, owner, id);
+        if ((await getRecord(db, owner, id)).index_status === 'pending') await indexRecord(db, owner, id);
       }
       return json({ operation, result: operation.result ? JSON.parse(operation.result) : null });
     }
@@ -52,6 +52,6 @@ async function handlePOST(request: Request) {
   finally { db.close(); }
 }
 
-export async function GET(request: Request) { return traceRequest(request, () => handleGET(request)); }
+export async function GET(request: Request) { return traceRequest(request, async () => await handleGET(request)); }
 
-export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }
+export async function POST(request: Request) { return traceRequest(request, async () => await handlePOST(request)); }

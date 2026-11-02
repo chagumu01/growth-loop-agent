@@ -34,7 +34,7 @@ function freshCourse(program: LearningProgram): LearningProgram {
     }) };
 }
 export async function findCourseSkill(context: LearningContext, input: CourseGenerationInput) {
-  governSkills(context);
+  await governSkills(context);
   const params = skillParams(input);
   const candidates = (await searchSkills(context, `${params.subject} ${params.goal}`, 'course.generate')).filter(skill => matchesSkill(skill, params));
   const active = candidates.filter(skill => skill.status === 'active');
@@ -45,16 +45,16 @@ export async function findCourseSkill(context: LearningContext, input: CourseGen
   const started = performance.now();
   let rendered: unknown;
   try { rendered = renderSkill(skill, params); }
-  catch { recordExecution(context, skill, params, 'fallback', performance.now() - started, { penalize: false }); return {}; }
-  if (!validCourse(rendered, input)) { recordExecution(context, skill, params, 'fallback', performance.now() - started, { shadow: skill.status === 'candidate' }); return {}; }
+  catch { await recordExecution(context, skill, params, 'fallback', performance.now() - started, { penalize: false }); return {}; }
+  if (!validCourse(rendered, input)) { await recordExecution(context, skill, params, 'fallback', performance.now() - started, { shadow: skill.status === 'candidate' }); return {}; }
   if (skill.status === 'active') {
-    recordExecution(context, skill, params, 'success', performance.now() - started);
+    await recordExecution(context, skill, params, 'success', performance.now() - started);
     return { result: freshCourse(rendered) };
   }
   return { shadow: { skill, result: rendered } };
 }
-export function validateShadow(context: LearningContext, input: CourseGenerationInput, shadow: { skill: Skill; result: LearningProgram }, result: LearningProgram) {
+export async function validateShadow(context: LearningContext, input: CourseGenerationInput, shadow: { skill: Skill; result: LearningProgram }, result: LearningProgram) {
   // Exact content agreement is conservative: structural similarity alone cannot validate knowledge.
   const passed = result.mode === 'llm' && comparableCourse(shadow.result) === comparableCourse(result);
-  recordExecution(context, shadow.skill, skillParams(input), passed ? 'success' : 'failed', 0, { shadow: true });
+  await recordExecution(context, shadow.skill, skillParams(input), passed ? 'success' : 'failed', 0, { shadow: true });
 }

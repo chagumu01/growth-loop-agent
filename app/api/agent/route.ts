@@ -58,8 +58,8 @@ async function handlePOST(request: Request) {
   const anonymous = /^[a-f0-9]{64}$/.test(previousAnonymous) ? previousAnonymous : randomBytes(32).toString('hex');
   let scope = `anonymous:${anonymous}`;
   if (session) {
-    const db = openDatabase();
-    try { scope = `user:${authenticate(db, session).id}`; }
+    const db = await openDatabase();
+    try { scope = `user:${(await authenticate(db, session)).id}`; }
     catch (error) { return failure(error); }
     finally { db.close(); }
   }
@@ -84,4 +84,4 @@ async function handlePOST(request: Request) {
 
 export async function GET(request: Request) { return traceRequest(request, () => handleGET()); }
 
-export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }
+export async function POST(request: Request) { return traceRequest(request, async () => await handlePOST(request)); }

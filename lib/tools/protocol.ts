@@ -1,7 +1,7 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../memory/store';
 import { DomainError } from '../data/errors';
 import { createOperation } from './operations';
-import { traceSync } from '../observability/trace';
+import { traceStage } from '../observability/trace';
 
 export const toolNames = ['create_task', 'query_plan', 'save_record', 'schedule_review'] as const;
 export type ToolName = typeof toolNames[number];
@@ -36,17 +36,17 @@ export function validateProposal(tool: unknown, input: unknown): { tool: ToolNam
   }
   return { tool: tool as ToolName, params };
 }
-export function proposeTool(db: DatabaseSync, owner: string, tool: unknown, input: unknown) {
-  return traceSync('tool_proposal', () => propose(db, owner, tool, input));
+export async function proposeTool(db: Database, owner: string, tool: unknown, input: unknown) {
+  return await traceStage('tool_proposal', async () => await propose(db, owner, tool, input));
 }
-function propose(db: DatabaseSync, owner: string, tool: unknown, input: unknown) {
+async function propose(db: Database, owner: string, tool: unknown, input: unknown) {
   const proposal = validateProposal(tool, input);
   if (proposal.tool === 'query_plan') {
-    return { kind: 'read' as const, tasks: db.prepare('SELECT id,title,date,category,status,record_id FROM tasks WHERE user_id=? AND date>=? AND date<=? ORDER BY date,created_at')
-      .all(owner, proposal.params.date!, proposal.params.endDate!) };
+    return { kind: 'read' as const, tasks: (await db.prepare('SELECT id,title,date,category,status,record_id FROM tasks WHERE user_id=? AND date>=? AND date<=? ORDER BY date,created_at')
+      .all(owner, proposal.params.date!, proposal.params.endDate!)) };
   }
-  if (proposal.tool === 'schedule_review' && !db.prepare('SELECT id FROM records WHERE id=? AND user_id=?').get(proposal.params.recordId!, owner)) {
+  if (proposal.tool === 'schedule_review' && !(await db.prepare('SELECT id FROM records WHERE id=? AND user_id=?').get(proposal.params.recordId!, owner))) {
     throw new DomainError('原学习记录不存在或无权访问。', 404);
   }
-  return { kind: 'confirmation' as const, operation: createOperation(db, owner, proposal.tool, proposal.params) };
+  return { kind: 'confirmation' as const, operation: (await createOperation(db, owner, proposal.tool, proposal.params)) };
 }
