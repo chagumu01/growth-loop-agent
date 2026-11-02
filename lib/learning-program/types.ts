@@ -43,7 +43,7 @@ export type LearningProgram = {
   cadence: string;
   instructor: CourseInstructor;
   lessons: CourseLesson[];
-  mode: "llm" | "rules";
+  mode: "llm" | "rules" | "skill";
   provider: string;
   createdAt: string;
 };
@@ -60,7 +60,7 @@ export type LessonTutorReply = {
   lessonId: string;
   reply: string;
   followUp: string;
-  mode: "llm" | "rules";
+  mode: "llm" | "rules" | "skill";
   provider: string;
 };
 
