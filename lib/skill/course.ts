@@ -19,7 +19,12 @@ export function validCourse(value: unknown, input: CourseGenerationInput): value
       && Array.isArray(lesson.questions) && lesson.questions.length >= 3 && lesson.questions.every(q => [q.prompt, q.hint, q.rubric].every(nonempty)));
 }
 export function comparableCourse(program: LearningProgram) {
-  return JSON.stringify(program, (key, value) => ['id', 'courseId', 'createdAt', 'provider', 'mode'].includes(key) ? undefined : value);
+  function canonical(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).filter(([key]) => !['id', 'courseId', 'createdAt', 'provider', 'mode'].includes(key)).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)]));
+    return value;
+  }
+  return JSON.stringify(canonical(program));
 }
 function freshCourse(program: LearningProgram): LearningProgram {
   return { ...program, courseId: randomUUID(), createdAt: new Date().toISOString(), mode: 'skill', provider: '程序性记忆',
@@ -41,7 +46,7 @@ export async function findCourseSkill(context: LearningContext, input: CourseGen
   let rendered: unknown;
   try { rendered = renderSkill(skill, params); }
   catch { recordExecution(context, skill, params, 'fallback', performance.now() - started, { penalize: false }); return {}; }
-  if (!validCourse(rendered, input)) { recordExecution(context, skill, params, 'fallback', performance.now() - started); return {}; }
+  if (!validCourse(rendered, input)) { recordExecution(context, skill, params, 'fallback', performance.now() - started, { shadow: skill.status === 'candidate' }); return {}; }
   if (skill.status === 'active') {
     recordExecution(context, skill, params, 'success', performance.now() - started);
     return { result: freshCourse(rendered) };

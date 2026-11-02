@@ -28,6 +28,7 @@ export function insertSkill(context: LearningContext, definition: SkillDefinitio
   });
 }
 export async function searchSkills({ db, owner }: LearningContext, query: string, taskType: string) {
+  await indexSkills({ db, owner });
   const rows = db.prepare("SELECT * FROM skills WHERE user_id=? AND task_type=? AND status IN ('active','candidate') ORDER BY updated_at DESC LIMIT 500").all(owner, taskType) as unknown as Skill[];
   const tokens = terms(query);
   const keyword = rows.map(skill => ({ skill, score: terms(`${skill.name} ${skill.trigger}`).filter(term => tokens.includes(term)).length }))
@@ -50,6 +51,23 @@ export async function searchSkills({ db, owner }: LearningContext, query: string
   const scores = new Map<string, { skill: Skill; score: number }>();
   for (const list of [keyword, semantic]) list.forEach(({ skill }, rank) => scores.set(skill.id, { skill, score: (scores.get(skill.id)?.score ?? 0) + 1 / (60 + rank + 1) }));
   return [...scores.values()].sort((a, b) => b.score - a.score).map(row => row.skill);
+}
+export async function indexSkills({ db, owner }: LearningContext) {
+  const { MEMORY_EMBEDDING_BASE_URL: url, MEMORY_EMBEDDING_API_KEY: key, MEMORY_EMBEDDING_MODEL: model } = process.env;
+  if (!url || !key || !model) return;
+  const stamp = `${url}|${model}`;
+  const rows = db.prepare("SELECT id,name,trigger FROM skills WHERE user_id=? AND status IN ('active','candidate') AND (embed_model IS NULL OR embed_model<>?) LIMIT 20").all(owner, stamp) as { id: string; name: string; trigger: string }[];
+  if (!rows.length) return;
+  try {
+    const { modelFetch } = await import('../observability/trace');
+    const response = await modelFetch('embedding', `${url.replace(/\/$/, '')}/embeddings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, input: rows.map(row => `${row.name} ${row.trigger}`) }), signal: AbortSignal.timeout(15000) });
+    if (!response.ok) return;
+    const data = (await response.json()).data as { index: number; embedding: number[] }[];
+    data.sort((a, b) => a.index - b.index);
+    if (data.length !== rows.length || data.some((row, i) => row.index !== i || !Array.isArray(row.embedding) || !row.embedding.length || row.embedding.length > 8192 || row.embedding.some(n => !Number.isFinite(n)))) return;
+    transaction(db, () => rows.forEach((row, i) => db.prepare('UPDATE skills SET embedding=?,embed_model=? WHERE id=? AND user_id=?').run(JSON.stringify(data[i].embedding), stamp, row.id, owner)));
+  } catch { /* A failed index never prevents keyword matching. */ }
 }
 export function renderSkill(skill: Skill, params: Record<string, unknown>) {
   const required = JSON.parse(skill.params_schema) as string[];
