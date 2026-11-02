@@ -20,3 +20,12 @@ test('missing denominators stay unknown; missing pairs and duplicate observation
   assert.throws(() => evaluateVerification([row('a'), row('a')]));
   assert.throws(() => evaluateVerification([row('a', { baseline: undefined })]));
 });
+test('controlled fixtures remain distinct from real learner evidence and human review', () => {
+  const samples = [row('synthetic-only', { humanLabel: null, syntheticTruth: 'false_mastery', expectedVerdict: 'missed', candidateVerdict: 'missed' })];
+  assert.equal(evaluateVerification(samples).eligible, 0);
+  const result = evaluateVerification(samples, { label: 'synthetic' });
+  assert.equal(result.label, 'synthetic-controlled');
+  assert.equal(result.eligible, 1);
+  assert.equal(result.fixtureAgreement.rate, 1);
+  assert.equal(result.humanAgreement.rate, null);
+});

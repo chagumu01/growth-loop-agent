@@ -27,6 +27,7 @@ test('role payloads enforce context isolation and reject unverifiable questions'
   assert.equal(await verifyTrap(trap, async () => ({ is_wrong: true, error_location: '无关位置', evidence: '无关证据' }), async () => false), null);
   assert.equal(await verifyTrap(trap, async () => ({ is_wrong: 'true', error_location: '无条件撤销', evidence: '证据' })), null);
   assert.equal(await generateTrap({ concept: 'x', knowledge: '', misconceptions: [], difficulty: '' }, async () => ({ prompt: '缺失字段' })), null);
+  assert.equal(await generateTrap({ concept: '事务', knowledge: '', misconceptions: [], difficulty: '' }, async () => ({ ...trap, injected_error: '这不是题面的原文' })), null);
   assert.equal((await judgeAnswer(trap as never, '对', async () => null)).abstained, true);
 });
 
@@ -34,12 +35,13 @@ test('configured model pipeline grades stored questions, persists evidence and c
   const db = openDatabase(':memory:');
   db.prepare('INSERT INTO users VALUES(?,?,?)').run('alice', 'alice', 'test');
   const context = { db, owner: 'alice' }, originalFetch = globalThis.fetch;
-  const keys = ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL', 'VERIFICATION_ENABLED'];
+  const keys = ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL', 'VERIFICATION_ENABLED', 'LLM_THINKING_MODE'];
   const previous = keys.map(key => process.env[key]);
-  Object.assign(process.env, { LLM_API_KEY: 'fixture', LLM_BASE_URL: 'https://fixture.invalid/v1', LLM_MODEL: 'fixture', VERIFICATION_ENABLED: 'true' });
+  Object.assign(process.env, { LLM_API_KEY: 'fixture', LLM_BASE_URL: 'https://fixture.invalid/v1', LLM_MODEL: 'fixture', VERIFICATION_ENABLED: 'true', LLM_THINKING_MODE: 'disabled' });
   const requests: { system: string; input: Record<string, unknown> }[] = [];
   globalThis.fetch = async (_url, options) => {
     const body = JSON.parse(String(options?.body));
+    assert.deepEqual(body.thinking, { type: 'disabled' });
     const system = body.messages[0].content as string, input = JSON.parse(body.messages[1].content);
     requests.push({ system, input });
     let value: unknown;

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "datasetOrigin": "synthetic-controlled",
+  "model": "deepseek-v4-pro",
+  "thinkingMode": "disabled",
+  "datasetHash": "ff7d4e52747ba270dc8e6bd0760d30398852a77d5381c6a9fb787e7e7034d838",
+  "sourceHashes": {
+    "lib/agent/quiz.ts": "8e4e2400a3699abdf3e73db0555494156f154b99d621ad573df725274411b9ff",
+    "lib/verification/model.ts": "13e996d28bc8069d9f5991ae930ddd3c78c8978f507b24fefe69bb77136cff9d",
+    "lib/verification/generator.ts": "0e7d04f4c7afef91435b6071a8c5572d40b6ce1a2c9f3bd7c3cc16367de1f34c",
+    "lib/verification/verifier.ts": "3d2ba81652ad856e8a6112ca2f9bc839301dc9cb79d85d8b68149cf1449200f9",
+    "lib/verification/judge.ts": "c91487b1573b4f2613fcbda84d334ecb1e3e5b2ebc8ce3ce12b7e3a8a3542467"
+  },
+  "baselineReuse": {
+    "report": "D:\\growth-loop-agent\\artifacts\\eval\\verification-controlled-disabled.json",
+    "hash": "42e3a1d8c7a5328a712856b4605ab567db8ab85274e7dcbd7561bfd891a240d0"
+  },
+  "complete": true,
+  "metrics": {
+    "schemaVersion": 1,
+    "label": "synthetic-controlled",
+    "reviewWindow": null,
+    "supplied": 30,
+    "eligible": 30,
+    "excluded": 0,
+    "learners": 30,
+    "positives": 20,
+    "negatives": 10,
+    "baseline": {
+      "truePositives": 20,
+      "falsePositives": 9,
+      "falseNegativesIncludingAbstentions": 0,
+      "recall": 1,
+      "recall95CI": [
+        0.8388698745050667,
+        1
+      ],
+      "precision": 0.6896551724137931,
+      "falsePositiveRate": 0.9,
+      "abstentions": 0,
+      "coverage": 1
+    },
+    "candidate": {
+      "truePositives": 19,
+      "falsePositives": 0,
+      "falseNegativesIncludingAbstentions": 1,
+      "recall": 0.95,
+      "recall95CI": [
+        0.7638641064874331,
+        0.9911187805671268
+      ],
+      "precision": 1,
+      "falsePositiveRate": 0,
+      "abstentions": 0,
+      "coverage": 1
+    },
+    "recallDeltaPercentagePoints": -5.000000000000004,
+    "humanAgreement": {
+      "reviewed": 0,
+      "agreements": 0,
+      "rate": null,
+      "ci95": null
+    },
+    "fixtureAgreement": {
+      "samples": 30,
+      "matches": 26,
+      "rate": 0.8666666666666667
+    },
+    "caveat": "Paired held-out observations only. Delayed failure is a proxy affected by forgetting; do not mix it with human labels. Wilson intervals assume independent observations; repeated learners require cluster bootstrap for inference. Synthetic fixtures must be disclosed and cannot support real-user efficacy claims."
+  },
+  "verifier": {
+    "trials": 10,
+    "passed": 10,
+    "passRate": 1
+  },
+  "generator": {
+    "trials": 10,
+    "generated": 10,
+    "verified": 7,
+    "endToEndUsability": 0.7
+  },
+  "judge": {
+    "attempted": 30,
+    "fixtureAgreementOnNonAbstained": 0.8666666666666667,
+    "humanAgreement": null
+  },
+  "provider": {
+    "callsThisRun": 60,
+    "knownInputTokens": 8952,
+    "knownOutputTokens": 4030,
+    "callsWithUnknownUsage": 0,
+    "p50Ms": 1419.21,
+    "p95Ms": 2670.52
+  },
+  "caveat": "30 authored answer controls, 10 concepts, no real learners or human blind review. Baseline gets ordinary quiz answers; candidate gets a separate trap answer. This compares product screening flows, not the causal effect of role isolation. Strict verifier failures are abstentions. Initial mastery is a synthetic assumption. No answer or label is sent to Generator/Verifier except their whitelisted inputs. Cases within each of ten concepts are correlated; sample-level Wilson intervals are descriptive, not a population claim. End-to-end recall counts verifier rejection as non-detection. This is the specialist detector, not the combined course mastery score. Human agreement is unmeasured."
+}

@@ -20,7 +20,7 @@ export async function errorMatches(a: string, b: string) {
 }
 export async function verifyTrap(trap: Trap, call: RoleCall = callRole, matches = errorMatches): Promise<VerifiedTrap | null> {
   // Construct the whitelist explicitly. Never spread generator metadata into this call.
-  const data = object(await call('verifier', '独立核验题目中的知识陈述，对照给定正确知识定位错误。只输出 JSON {is_wrong:boolean,error_location:string,evidence:string}。不要凭题目要求就假定有错；没有充分证据应返回 false。', { prompt: trap.prompt, correct_version: trap.correct_version }));
+  const data = object(await call('verifier', '独立核验题目中的知识陈述，对照给定正确知识定位错误。只输出 JSON {is_wrong:boolean,error_location:string,evidence:string}。error_location 必须逐字引用 prompt 中完整的错误知识陈述，不包含提问引导或句末标点，不要改写、概括或加引号；解释写入 evidence。不要凭题目要求就假定有错；没有充分证据应返回 false。', { prompt: trap.prompt, correct_version: trap.correct_version }));
   if (data.is_wrong !== true || !nonempty(data.error_location) || !nonempty(data.evidence) || !(await matches(data.error_location, trap.injected_error))) return null;
   return { ...trap, error_location: data.error_location, evidence: data.evidence };
 }
