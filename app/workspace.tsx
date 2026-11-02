@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Capacitor } from "@capacitor/core";
-import Link from "next/link";
 import dynamic from "next/dynamic";
+import { SessionProvider, useSession } from "./session";
 import {
   ArrowUpRight,
   BarChart3,
@@ -40,6 +40,7 @@ import type { CourseLesson } from "@/lib/learning-program/types";
 import LearningStudio from "./learning-studio";
 import MobileAppShell, { type MobileTab } from "./mobile-shell";
 
+const AccountPanel = dynamic(() => import("./account/account-panel"), { loading: () => <p role="status">正在打开账号…</p> });
 const MemoryPanel = dynamic(() => import("./memory/memory-panel"), { loading: () => <p role="status">正在打开学习记忆…</p> });
 const ActionsPanel = dynamic(() => import("./actions/actions-panel"), { loading: () => <p role="status">正在打开行动与计划…</p> });
 
@@ -130,6 +131,7 @@ const tabs: Array<{ label: Tab; icon: typeof LayoutDashboard }> = [
 const tabCopy: Record<Tab, { eyebrow: string; suffix: string; description: string }> = {
   行动与计划: { eyebrow: "行动与计划", suffix: "把想法变成可执行的下一步", description: "查看个人计划，核对行动细节，确认后再执行。" },
   学习记忆: { eyebrow: "学习记忆", suffix: "让每次学习都有据可循", description: "保存笔记、测验反馈与项目成果，从原始记录中找回需要的证据。" },
+  账号与个人数据: { eyebrow: "账号与个人数据", suffix: "让行动和记忆跟随你", description: "管理登录状态，使用自己的账号保存计划与学习证据。" },
   今日: { eyebrow: "今日回路", suffix: "只推进一件重要的事", description: "把注意力放在下一步，完成之后，进步自然会留下痕迹。" },
   计划: { eyebrow: "计划地图", suffix: "让长期目标落到今天", description: "目标不是另一张待办清单，它要能告诉你下一步为什么值得做。" },
   课程: { eyebrow: "AI 学习程序", suffix: "把目标变成可交付的能力", description: "从你想学会的一件事开始，AI 会编排课程、陪你理解，并用课后题检查迁移能力。" },
@@ -138,6 +140,14 @@ const tabCopy: Record<Tab, { eyebrow: string; suffix: string; description: strin
 };
 
 export default function Workspace({ initialTab = "今日" }: { initialTab?: Tab }) {
+  return <SessionProvider><WorkspaceContent initialTab={initialTab} /></SessionProvider>;
+}
+
+function WorkspaceContent({ initialTab }: { initialTab: Tab }) {
+  const { user, loading: sessionLoading } = useSession();
+  const profileName = user?.name ?? (sessionLoading ? "读取账号…" : "未登录");
+  const avatarLabel = user?.name.slice(0, 1).toUpperCase() ?? "访";
+  const sessionKey = user?.id ?? "guest";
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const mainColumnRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -269,8 +279,8 @@ export default function Workspace({ initialTab = "今日" }: { initialTab?: Tab 
   const greeting = useMemo(() => {
     if (doneCount === tasks.length) return "今天的回路已经闭合";
     if (doneCount > 0) return "很好，今天已经开始转起来了";
-    return "早上好，周予安";
-  }, [doneCount, tasks.length]);
+    return user ? `早上好，${user.name}` : "早上好，欢迎回来";
+  }, [doneCount, tasks.length, user]);
 
   function toggleTask(id: string) {
     setTasks((current) =>
@@ -497,8 +507,11 @@ export default function Workspace({ initialTab = "今日" }: { initialTab?: Tab 
       isFocusRunning={isFocusRunning}
       onToggleFocus={toggleFocusSession}
       toast={toast}
-      memoryPanel={<MemoryPanel />}
-      actionsPanel={<ActionsPanel />}
+      accountPanel={<AccountPanel key={sessionKey} onNavigate={setActiveTab} />}
+      profileName={profileName}
+      avatarLabel={avatarLabel}
+      memoryPanel={<MemoryPanel key={sessionKey} />}
+      actionsPanel={<ActionsPanel key={sessionKey} />}
       learningStudio={<LearningStudio compact onBack={() => setActiveTab("计划")} onAddLesson={addCourseLessonToToday} />}
     />;
   }
@@ -536,11 +549,11 @@ export default function Workspace({ initialTab = "今日" }: { initialTab?: Tab 
         </div>
 
         <div className="sidebar-bottom">
-          <Link className="help-link" href="/account">账号与个人数据</Link>
+          <button className={`help-link account-nav-item ${activeTab === "账号与个人数据" ? "active" : ""}`} aria-current={activeTab === "账号与个人数据" ? "page" : undefined} onClick={() => setActiveTab("账号与个人数据")}>账号与个人数据</button>
           <button className="help-link" onClick={() => notify("小贴士：把下一步缩小到 10 分钟，先留下事实，晚报时再补充结果。")}><CircleHelp size={16} /> 使用小贴士</button>
           <div className="profile-chip">
-            <div className="avatar">{demoSeed.user.displayName.slice(0, 1)}</div>
-            <div className="profile-meta"><strong>{demoSeed.user.displayName}</strong><span>Lv. {String(demoSeed.user.level).padStart(2, "0")} · {demoSeed.user.role}</span></div>
+            <div className="avatar">{avatarLabel}</div>
+            <div className="profile-meta"><strong title={profileName}>{profileName}</strong><span>{user ? "已登录 · 个人账号" : "登录后同步个人数据"}</span></div>
             <MoreHorizontal size={16} className="muted-icon" />
           </div>
         </div>
@@ -550,7 +563,7 @@ export default function Workspace({ initialTab = "今日" }: { initialTab?: Tab 
         <header className="topbar">
           <div className="mobile-brand"><div className="brand-mark"><Sparkles size={15} /></div><span>成长回路</span></div>
           <div className="date-stamp">{demoSeed.user.dateLabel} <span>·</span> {demoSeed.user.weekdayLabel}</div>
-          <div className="topbar-actions"><span className="ai-online-pill"><span /> AI 在线</span><button className="icon-button" aria-label="打开消息" onClick={() => notify(reviewEnabled ? "下一次 AI 晚间回顾：今天 21:30" : "晚间回顾目前已关闭") }><MessageCircle size={18} /></button><div className="avatar avatar-small">{demoSeed.user.displayName.slice(0, 1)}</div></div>
+          <div className="topbar-actions"><span className="ai-online-pill"><span /> AI 在线</span><button className="icon-button" aria-label="打开消息" onClick={() => notify(reviewEnabled ? "下一次 AI 晚间回顾：今天 21:30" : "晚间回顾目前已关闭") }><MessageCircle size={18} /></button><button className="avatar avatar-small" aria-label="打开账号与个人数据" onClick={() => setActiveTab("账号与个人数据")}>{avatarLabel}</button></div>
         </header>
 
         <div className="content-wrap">
@@ -587,10 +600,12 @@ export default function Workspace({ initialTab = "今日" }: { initialTab?: Tab 
             <PlanPanel tasks={tasks} onToggleTask={toggleTask} onSplitGoal={splitGoal} onBackToToday={() => setActiveTab("今日")} />
           ) : activeTab === "记录" ? (
             <RecordsPanel logs={logs} input={input} setInput={setInput} inputRef={quickLogRef} onSubmit={submitLog} onGenerateQuiz={(log) => generateQuiz(log.text, log.topic, log.output, log.id, true)} onBackToToday={() => setActiveTab("今日")} />
+          ) : activeTab === "账号与个人数据" ? (
+            <AccountPanel key={sessionKey} onNavigate={setActiveTab} />
           ) : activeTab === "学习记忆" ? (
-            <MemoryPanel />
+            <MemoryPanel key={sessionKey} />
           ) : activeTab === "行动与计划" ? (
-            <ActionsPanel />
+            <ActionsPanel key={sessionKey} />
           ) : activeTab === "课程" ? (
             <LearningStudio onBack={() => setActiveTab("计划")} onAddLesson={addCourseLessonToToday} />
           ) : (

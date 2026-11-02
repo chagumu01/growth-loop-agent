@@ -51,6 +51,12 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(240, 120,
 .avatar { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; color: #fff9ed; background: #be765d; border-radius: 50%; font-family: 'Noto Serif SC', serif; font-size: 12px; }
 .profile-meta strong, .profile-meta span { display: block; }
 .profile-meta strong { color: #f6efe4; font-size: 12px; font-weight: 600; }
+.profile-meta { min-width: 0; }
+.profile-meta strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.account-nav-item { width: 100%; padding: 10px 12px; margin-bottom: 15px; border-radius: 9px; text-align: left; }
+.account-nav-item.active { color: #fff8ed; background: #27414e; box-shadow: inset 3px 0 0 var(--coral); }
+.account-nav-item:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+.cloud-account-form { display: grid; gap: 16px; }
 .profile-meta span { color: #819599; font-size: 9px; margin-top: 4px; }
 
 .main-column { min-width: 0; height: 100vh; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; border-right: 1px solid var(--line); }

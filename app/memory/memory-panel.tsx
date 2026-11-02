@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Citation, MemoryRecord } from '@/lib/memory/service';
 import styles from './memory.module.css';
+import { useSession } from '../session';
 
 type SearchResult = { answer: string; citations: Citation[]; mode: string; warning: string };
 type Reply = { user?: { name: string }; records?: MemoryRecord[]; record?: MemoryRecord } & Partial<SearchResult>;
@@ -15,6 +16,7 @@ async function request(path: string, body?: object): Promise<Reply> {
 const empty = { title: '', content: '', source: '手动记录', kind: 'note' as MemoryRecord['kind'] };
 const statusLabels: Record<string, string> = { keyword: '关键词可检索', pending: '待建立向量索引', failed: '向量索引失败', ready: '混合检索就绪' };
 export default function MemoryPanel() {
+  const { changed } = useSession();
   const [user, setUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -72,14 +74,14 @@ export default function MemoryPanel() {
 
   return <section className={styles.page} aria-label="学习记忆内容">
     <header className={styles.header}><div><span className="eyebrow">LEARNING MEMORY</span><h2>个人学习库</h2><p>把笔记、测验反馈与成果保存为可回看的证据。</p></div>{user && <button disabled={busy} onClick={() => void perform(async () => {
-      await request('/api/memory/session', { action: 'logout' }); setUser(null); setRecords([]); setForm(empty); setEditing(null); clearEvidence();
+      await request('/api/memory/session', { action: 'logout' }); setUser(null); setRecords([]); setForm(empty); setEditing(null); clearEvidence(); await changed();
     })}>{user} · 退出</button>}</header>
     <p className={styles.message} role="status" aria-live="polite">{message || (busy ? '正在处理，请稍候…' : '')}</p>
     {loading ? <p>正在读取登录状态…</p> : !user ? <section className={styles.card}>
       <h2>{register ? '创建学习记忆账号' : '登录学习记忆'}</h2><p>与“我的账号”使用同一账号，记录按账号隔离。请记住密码；当前未提供密码找回。</p>
       <form onSubmit={event => { event.preventDefault(); void perform(async () => {
         const data = await request('/api/memory/session', { action: register ? 'register' : 'login', name, password });
-        setPassword(''); setUser(data.user!.name); await refresh();
+        setPassword(''); setUser(data.user!.name); await refresh(); await changed();
       }); }}>
         <label>账号<input required minLength={3} maxLength={40} pattern={"[a-zA-Z0-9_\\-]+"} autoComplete="username" value={name} onChange={e => setName(e.target.value)} /></label>
         <label>密码（至少 10 位）<input required type="password" minLength={10} maxLength={128} autoComplete={register ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)} /></label>
