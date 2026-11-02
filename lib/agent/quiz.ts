@@ -105,6 +105,7 @@ async function callLlm(messages: Array<{ role: "system" | "user"; content: strin
       body: JSON.stringify({
         model: config.model,
         temperature: 0.2,
+        ...(['enabled', 'disabled'].includes(process.env.LLM_THINKING_MODE || '') ? { thinking: { type: process.env.LLM_THINKING_MODE } } : {}),
         messages,
       }),
       signal: controller.signal,

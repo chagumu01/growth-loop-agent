@@ -1,0 +1,2801 @@
+{
+  "schemaVersion": 1,
+  "datasetOrigin": "synthetic-controlled",
+  "createdAt": "2026-11-02T04:04:38.303Z",
+  "commit": "b2322657e22c1e6ee8bc82cb5176e663119d4a1b",
+  "model": "deepseek-v4-pro",
+  "thinkingMode": "disabled",
+  "datasetHash": "ff7d4e52747ba270dc8e6bd0760d30398852a77d5381c6a9fb787e7e7034d838",
+  "sourceHashes": {
+    "lib/agent/quiz.ts": "8e4e2400a3699abdf3e73db0555494156f154b99d621ad573df725274411b9ff",
+    "lib/verification/model.ts": "13e996d28bc8069d9f5991ae930ddd3c78c8978f507b24fefe69bb77136cff9d",
+    "lib/verification/generator.ts": "0e7d04f4c7afef91435b6071a8c5572d40b6ce1a2c9f3bd7c3cc16367de1f34c",
+    "lib/verification/verifier.ts": "3d2ba81652ad856e8a6112ca2f9bc839301dc9cb79d85d8b68149cf1449200f9",
+    "lib/verification/judge.ts": "c91487b1573b4f2613fcbda84d334ecb1e3e5b2ebc8ce3ce12b7e3a8a3542467"
+  },
+  "baselineReuse": {
+    "report": "D:\\growth-loop-agent\\artifacts\\eval\\verification-controlled-disabled.json",
+    "hash": "42e3a1d8c7a5328a712856b4605ab567db8ab85274e7dcbd7561bfd891a240d0"
+  },
+  "caveat": "30 authored answer controls, 10 concepts, no real learners or human blind review. Baseline gets ordinary quiz answers; candidate gets a separate trap answer. This compares product screening flows, not the causal effect of role isolation. Strict verifier failures are abstentions. Initial mastery is a synthetic assumption. No answer or label is sent to Generator/Verifier except their whitelisted inputs.",
+  "complete": true,
+  "elapsedMs": 51317,
+  "controls": [
+    {
+      "concept": "事务提交与回滚",
+      "core": "事务用原子性保证事务内操作全部成功或全部失败。",
+      "correct": "事务提交后不能直接回滚，撤销业务效果需要补偿操作。",
+      "wrong": "事务提交后仍可以直接回滚",
+      "caught": "不成立。提交已使事务结束，不能再直接回滚，应另起事务做补偿。",
+      "misidentified": "错误在于事务不能保证原子性；提交后直接回滚是成立的。"
+    },
+    {
+      "concept": "SQL 参数化查询",
+      "core": "参数化查询把 SQL 代码与参数值分开处理。",
+      "correct": "参数化保护的是绑定值；动态表名和列名仍需白名单校验。",
+      "wrong": "参数化查询会自动保护拼接的表名",
+      "caught": "不成立。表名不是可绑定的普通值，动态标识符要用白名单，不能直接拼接输入。",
+      "misidentified": "错误在于不应对字符串值使用参数绑定；拼接表名本身是安全的。"
+    },
+    {
+      "concept": "HTTP 幂等性",
+      "core": "幂等描述同一操作重复执行后的预期服务端效果。",
+      "correct": "幂等不要求每次响应码或响应体相同，例如重复 DELETE 的响应可不同。",
+      "wrong": "幂等请求每次必须返回相同状态码",
+      "caught": "不成立。幂等约束重复操作的效果，第一次 DELETE 成功后再次返回 404 也可满足幂等。",
+      "misidentified": "错误是 DELETE 永远不幂等；幂等操作确实必须每次返回同一个状态码。"
+    },
+    {
+      "concept": "JavaScript Promise",
+      "core": "Promise 表示异步操作最终完成或失败的状态。",
+      "correct": "Promise 的 executor 在构造时同步调用，then 回调才进入微任务队列。",
+      "wrong": "Promise 的 executor 一定在微任务中执行",
+      "caught": "不成立。new Promise 的 executor 同步执行，then 的回调才排入微任务。",
+      "misidentified": "错误是 then 回调会同步执行；executor 放在微任务中是正确的。"
+    },
+    {
+      "concept": "TypeScript 运行时校验",
+      "core": "TypeScript 在编译阶段对程序做静态类型检查。",
+      "correct": "类型断言会在编译后擦除，不能验证外部 JSON 的运行时结构。",
+      "wrong": "使用类型断言就能校验外部 JSON 的运行时结构",
+      "caught": "不成立。as 断言只是静态声明；外部 JSON 要在运行时用 schema 或显式规则验证。",
+      "misidentified": "错误是 TypeScript 不能做静态检查；as 类型断言本身能验证外部 JSON。"
+    },
+    {
+      "concept": "统计显著性与效应量",
+      "core": "p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+      "correct": "p 值小不代表效应大，也不代表业务收益大，需要同时查看效应量和区间。",
+      "wrong": "p 值越小就必然说明业务效应越大",
+      "caught": "不成立。p 值受样本量等因素影响，效应大小要看效应量，业务价值还需要单独判断。",
+      "misidentified": "错误在于显著性检验必须只用于大效应；p 值越小确实能直接保证业务效应越大。"
+    },
+    {
+      "concept": "A/B 测试随机分组",
+      "core": "随机分组有助于减少处理组与对照组的系统性选择偏差。",
+      "correct": "随机化不能保证有限样本的每个协变量完全相同，需要检查分组和样本情况。",
+      "wrong": "随机分组能保证有限样本中的所有特征完全平衡",
+      "caught": "不成立。随机化保证分配机制随机，不保证有限样本每个特征数值相等，仍需检查平衡与异常。",
+      "misidentified": "错误是随机化会必然制造选择偏差；随机组里的所有特征确实应完全一样。"
+    },
+    {
+      "concept": "向量归一化与相似度",
+      "core": "余弦相似度衡量向量方向之间的相近程度。",
+      "correct": "点积等于余弦相似度需要两个非零向量都做单位长度归一化。",
+      "wrong": "任意非零向量的点积都等于余弦相似度",
+      "caught": "不成立。点积还受长度影响，只有两个向量都归一化为单位长度时两者才相等。",
+      "misidentified": "错误是余弦相似度比较的是长度；任意非零向量的点积都等于余弦相似度没有问题。"
+    },
+    {
+      "concept": "缓存 TTL 与一致性",
+      "core": "TTL 控制缓存条目在多长时间后失效。",
+      "correct": "TTL 限制缓存有效时长，但 TTL 到期前仍可能读到旧值，不能保证强一致。",
+      "wrong": "只要设置 TTL 就可以保证缓存与数据库强一致",
+      "caught": "不成立。TTL 到期前仍可能陈旧；强一致需要额外协调，不能只靠过期时间。",
+      "misidentified": "错误是缓存条目不能设置过期时间；TTL 本身确实可以确保数据库与缓存强一致。"
+    },
+    {
+      "concept": "Agent 工具调用与授权",
+      "core": "Agent 可以通过结构化参数向工具发起操作请求。",
+      "correct": "模型生成合法参数只是提议，涉及受保护操作仍须服务端身份与权限校验。",
+      "wrong": "模型生成合法工具参数就等于用户授权",
+      "caught": "不成立。参数合法只说明格式正确，执行还要核验服务端身份、权限以及必要的用户确认。",
+      "misidentified": "错误在于工具不应使用结构化参数；模型生成合法参数就能代表用户授权。"
+    }
+  ],
+  "samples": [
+    {
+      "id": "control-0-caught",
+      "learnerId": "synthetic-0-caught",
+      "concept": "事务提交与回滚",
+      "index": 0,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。提交已使事务结束，不能再直接回滚，应另起事务做补偿。",
+      "answers": {
+        "concept": "事务用原子性保证事务内操作全部成功或全部失败。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。事务用原子性保证事务内操作全部成功或全部失败。",
+        "boundary": "事务提交后不能直接回滚，撤销业务效果需要补偿操作。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 55,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "提交后事务已结束，不能直接回滚，应通过补偿事务处理。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-1-caught",
+      "learnerId": "synthetic-1-caught",
+      "concept": "SQL 参数化查询",
+      "index": 1,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。表名不是可绑定的普通值，动态标识符要用白名单，不能直接拼接输入。",
+      "answers": {
+        "concept": "参数化查询把 SQL 代码与参数值分开处理。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。参数化查询把 SQL 代码与参数值分开处理。",
+        "boundary": "参数化保护的是绑定值；动态表名和列名仍需白名单校验。"
+      },
+      "baseline": "clear",
+      "baselineScore": 60,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "参数化查询不会自动保护拼接的表名，动态标识符需用白名单处理。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-0-missed",
+      "learnerId": "synthetic-0-missed",
+      "concept": "事务提交与回滚",
+      "index": 0,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。事务提交后仍可以直接回滚，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "事务用原子性保证事务内操作全部成功或全部失败。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。事务用原子性保证事务内操作全部成功或全部失败。",
+        "boundary": "事务提交后仍可以直接回滚，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 25,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "事务提交后仍可以直接回滚",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-1-missed",
+      "learnerId": "synthetic-1-missed",
+      "concept": "SQL 参数化查询",
+      "index": 1,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。参数化查询会自动保护拼接的表名，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "参数化查询把 SQL 代码与参数值分开处理。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。参数化查询把 SQL 代码与参数值分开处理。",
+        "boundary": "参数化查询会自动保护拼接的表名，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 40,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "参数化查询会自动保护拼接的表名",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-0-misidentified",
+      "learnerId": "synthetic-0-misidentified",
+      "concept": "事务提交与回滚",
+      "index": 0,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误在于事务不能保证原子性；提交后直接回滚是成立的。",
+      "answers": {
+        "concept": "事务用原子性保证事务内操作全部成功或全部失败。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。事务用原子性保证事务内操作全部成功或全部失败。",
+        "boundary": "事务提交后仍可以直接回滚，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 20,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "misidentified",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "misidentified",
+        "user_belief": "用户认为错误在于事务不能保证原子性，但实际错误是提交后不能直接回滚；用户未识破原陈述的错误。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-1-misidentified",
+      "learnerId": "synthetic-1-misidentified",
+      "concept": "SQL 参数化查询",
+      "index": 1,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误在于不应对字符串值使用参数绑定；拼接表名本身是安全的。",
+      "answers": {
+        "concept": "参数化查询把 SQL 代码与参数值分开处理。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。参数化查询把 SQL 代码与参数值分开处理。",
+        "boundary": "参数化查询会自动保护拼接的表名，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 33,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "misidentified",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "misidentified",
+        "user_belief": "用户认为错误在于不应对字符串值使用参数绑定，并认为拼接表名本身是安全的，未识别出参数化查询不能保护拼接表名的真正错误。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-2-caught",
+      "learnerId": "synthetic-2-caught",
+      "concept": "HTTP 幂等性",
+      "index": 2,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。幂等约束重复操作的效果，第一次 DELETE 成功后再次返回 404 也可满足幂等。",
+      "answers": {
+        "concept": "幂等描述同一操作重复执行后的预期服务端效果。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。幂等描述同一操作重复执行后的预期服务端效果。",
+        "boundary": "幂等不要求每次响应码或响应体相同，例如重复 DELETE 的响应可不同。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 35,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "幂等性不要求每次返回相同状态码，重复操作的效果一致即可，例如 DELETE 成功后再次返回 404 仍可满足幂等。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-3-caught",
+      "learnerId": "synthetic-3-caught",
+      "concept": "JavaScript Promise",
+      "index": 3,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。new Promise 的 executor 同步执行，then 的回调才排入微任务。",
+      "answers": {
+        "concept": "Promise 表示异步操作最终完成或失败的状态。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。Promise 表示异步操作最终完成或失败的状态。",
+        "boundary": "Promise 的 executor 在构造时同步调用，then 回调才进入微任务队列。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 35,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "executor 同步执行，then 回调才进入微任务",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-3-missed",
+      "learnerId": "synthetic-3-missed",
+      "concept": "JavaScript Promise",
+      "index": 3,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。Promise 的 executor 一定在微任务中执行，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "Promise 表示异步操作最终完成或失败的状态。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。Promise 表示异步操作最终完成或失败的状态。",
+        "boundary": "Promise 的 executor 一定在微任务中执行，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 40,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为该陈述正确，并错误地相信 Promise 的 executor 在微任务中执行。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-2-missed",
+      "learnerId": "synthetic-2-missed",
+      "concept": "HTTP 幂等性",
+      "index": 2,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。幂等请求每次必须返回相同状态码，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "幂等描述同一操作重复执行后的预期服务端效果。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。幂等描述同一操作重复执行后的预期服务端效果。",
+        "boundary": "幂等请求每次必须返回相同状态码，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 33,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认可了错误陈述，并认为幂等请求每次必须返回相同状态码是正确的工作原理。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-3-misidentified",
+      "learnerId": "synthetic-3-misidentified",
+      "concept": "JavaScript Promise",
+      "index": 3,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误是 then 回调会同步执行；executor 放在微任务中是正确的。",
+      "answers": {
+        "concept": "Promise 表示异步操作最终完成或失败的状态。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。Promise 表示异步操作最终完成或失败的状态。",
+        "boundary": "Promise 的 executor 一定在微任务中执行，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 40,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "misidentified",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "misidentified",
+        "user_belief": "用户认为 executor 在微任务中执行是正确的，错误在于 then 回调会同步执行；实际上 executor 是同步执行的，then 回调才是异步的。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-2-misidentified",
+      "learnerId": "synthetic-2-misidentified",
+      "concept": "HTTP 幂等性",
+      "index": 2,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误是 DELETE 永远不幂等；幂等操作确实必须每次返回同一个状态码。",
+      "answers": {
+        "concept": "幂等描述同一操作重复执行后的预期服务端效果。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。幂等描述同一操作重复执行后的预期服务端效果。",
+        "boundary": "幂等请求每次必须返回相同状态码，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 25,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "misidentified",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "misidentified",
+        "user_belief": "用户认为原陈述中的错误是“DELETE 永远不幂等”，并认为“幂等操作确实必须每次返回同一个状态码”是正确的。实际上，原陈述的错误在于“必须返回相同状态码”这一要求，幂等性关注的是操作效果而非状态码。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-4-caught",
+      "learnerId": "synthetic-4-caught",
+      "concept": "TypeScript 运行时校验",
+      "index": 4,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。as 断言只是静态声明；外部 JSON 要在运行时用 schema 或显式规则验证。",
+      "answers": {
+        "concept": "TypeScript 在编译阶段对程序做静态类型检查。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。TypeScript 在编译阶段对程序做静态类型检查。",
+        "boundary": "类型断言会在编译后擦除，不能验证外部 JSON 的运行时结构。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 35,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "用户正确指出类型断言不能校验运行时结构，并说明需要运行时验证。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-4-missed",
+      "learnerId": "synthetic-4-missed",
+      "concept": "TypeScript 运行时校验",
+      "index": 4,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。使用类型断言就能校验外部 JSON 的运行时结构，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "TypeScript 在编译阶段对程序做静态类型检查。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。TypeScript 在编译阶段对程序做静态类型检查。",
+        "boundary": "使用类型断言就能校验外部 JSON 的运行时结构，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 20,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为类型断言可以校验外部 JSON 的运行时结构，并认可该错误陈述。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-5-caught",
+      "learnerId": "synthetic-5-caught",
+      "concept": "统计显著性与效应量",
+      "index": 5,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。p 值受样本量等因素影响，效应大小要看效应量，业务价值还需要单独判断。",
+      "answers": {
+        "concept": "p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+        "boundary": "p 值小不代表效应大，也不代表业务收益大，需要同时查看效应量和区间。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 45,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "用户正确指出 p 值不能直接等同于业务效应大小，并说明需看效应量和业务价值。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-4-misidentified",
+      "learnerId": "synthetic-4-misidentified",
+      "concept": "TypeScript 运行时校验",
+      "index": 4,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误是 TypeScript 不能做静态检查；as 类型断言本身能验证外部 JSON。",
+      "answers": {
+        "concept": "TypeScript 在编译阶段对程序做静态类型检查。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。TypeScript 在编译阶段对程序做静态类型检查。",
+        "boundary": "使用类型断言就能校验外部 JSON 的运行时结构，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 25,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "TypeScript 类型断言不能校验外部 JSON 的运行时结构，只能绕过静态检查。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-5-missed",
+      "learnerId": "synthetic-5-missed",
+      "concept": "统计显著性与效应量",
+      "index": 5,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。p 值越小就必然说明业务效应越大，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+        "boundary": "p 值越小就必然说明业务效应越大，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 25,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认可了错误陈述，认为 p 值越小必然说明业务效应越大。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-5-misidentified",
+      "learnerId": "synthetic-5-misidentified",
+      "concept": "统计显著性与效应量",
+      "index": 5,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误在于显著性检验必须只用于大效应；p 值越小确实能直接保证业务效应越大。",
+      "answers": {
+        "concept": "p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。p 值用于在零假设下评估观察到的数据及更极端结果的概率。",
+        "boundary": "p 值越小就必然说明业务效应越大，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 25,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为 p 值越小确实能直接保证业务效应越大，未识破该错误。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-6-caught",
+      "learnerId": "synthetic-6-caught",
+      "concept": "A/B 测试随机分组",
+      "index": 6,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。随机化保证分配机制随机，不保证有限样本每个特征数值相等，仍需检查平衡与异常。",
+      "answers": {
+        "concept": "随机分组有助于减少处理组与对照组的系统性选择偏差。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。随机分组有助于减少处理组与对照组的系统性选择偏差。",
+        "boundary": "随机化不能保证有限样本的每个协变量完全相同，需要检查分组和样本情况。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 45,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "随机化不保证有限样本中所有特征完全平衡，仍需检查平衡与异常。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-6-missed",
+      "learnerId": "synthetic-6-missed",
+      "concept": "A/B 测试随机分组",
+      "index": 6,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。随机分组能保证有限样本中的所有特征完全平衡，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "随机分组有助于减少处理组与对照组的系统性选择偏差。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。随机分组有助于减少处理组与对照组的系统性选择偏差。",
+        "boundary": "随机分组能保证有限样本中的所有特征完全平衡，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 40,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认可了错误陈述，认为随机分组能保证有限样本中的所有特征完全平衡。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-6-misidentified",
+      "learnerId": "synthetic-6-misidentified",
+      "concept": "A/B 测试随机分组",
+      "index": 6,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误是随机化会必然制造选择偏差；随机组里的所有特征确实应完全一样。",
+      "answers": {
+        "concept": "随机分组有助于减少处理组与对照组的系统性选择偏差。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。随机分组有助于减少处理组与对照组的系统性选择偏差。",
+        "boundary": "随机分组能保证有限样本中的所有特征完全平衡，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 40,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为原陈述的错误在于随机化会必然制造选择偏差，但同时认可随机组里的所有特征应完全一样，未识破原陈述中“保证完全平衡”这一过度绝对化的错误。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-7-caught",
+      "learnerId": "synthetic-7-caught",
+      "concept": "向量归一化与相似度",
+      "index": 7,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。点积还受长度影响，只有两个向量都归一化为单位长度时两者才相等。",
+      "answers": {
+        "concept": "余弦相似度衡量向量方向之间的相近程度。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。余弦相似度衡量向量方向之间的相近程度。",
+        "boundary": "点积等于余弦相似度需要两个非零向量都做单位长度归一化。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 35,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "点积不等于余弦相似度，只有向量归一化为单位长度时两者才相等。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-7-missed",
+      "learnerId": "synthetic-7-missed",
+      "concept": "向量归一化与相似度",
+      "index": 7,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。任意非零向量的点积都等于余弦相似度，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "余弦相似度衡量向量方向之间的相近程度。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。余弦相似度衡量向量方向之间的相近程度。",
+        "boundary": "任意非零向量的点积都等于余弦相似度，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 28,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为陈述正确，未识破错误。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-7-misidentified",
+      "learnerId": "synthetic-7-misidentified",
+      "concept": "向量归一化与相似度",
+      "index": 7,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误是余弦相似度比较的是长度；任意非零向量的点积都等于余弦相似度没有问题。",
+      "answers": {
+        "concept": "余弦相似度衡量向量方向之间的相近程度。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。余弦相似度衡量向量方向之间的相近程度。",
+        "boundary": "任意非零向量的点积都等于余弦相似度，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 20,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为原陈述“任意非零向量的点积都等于余弦相似度”没有问题，未识破其错误。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-8-caught",
+      "learnerId": "synthetic-8-caught",
+      "concept": "缓存 TTL 与一致性",
+      "index": 8,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。TTL 到期前仍可能陈旧；强一致需要额外协调，不能只靠过期时间。",
+      "answers": {
+        "concept": "TTL 控制缓存条目在多长时间后失效。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。TTL 控制缓存条目在多长时间后失效。",
+        "boundary": "TTL 限制缓存有效时长，但 TTL 到期前仍可能读到旧值，不能保证强一致。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 55,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "不成立。TTL 到期前仍可能陈旧；强一致需要额外协调，不能只靠过期时间。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-8-missed",
+      "learnerId": "synthetic-8-missed",
+      "concept": "缓存 TTL 与一致性",
+      "index": 8,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。只要设置 TTL 就可以保证缓存与数据库强一致，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "TTL 控制缓存条目在多长时间后失效。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。TTL 控制缓存条目在多长时间后失效。",
+        "boundary": "只要设置 TTL 就可以保证缓存与数据库强一致，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 35,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为该陈述正确，并相信设置 TTL 就能保证缓存与数据库强一致。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-8-misidentified",
+      "learnerId": "synthetic-8-misidentified",
+      "concept": "缓存 TTL 与一致性",
+      "index": 8,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误是缓存条目不能设置过期时间；TTL 本身确实可以确保数据库与缓存强一致。",
+      "answers": {
+        "concept": "TTL 控制缓存条目在多长时间后失效。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。TTL 控制缓存条目在多长时间后失效。",
+        "boundary": "只要设置 TTL 就可以保证缓存与数据库强一致，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 35,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "misidentified",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "misidentified",
+        "user_belief": "用户认为错误在于缓存条目不能设置过期时间，并错误地认为 TTL 本身可以确保强一致。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-9-caught",
+      "learnerId": "synthetic-9-caught",
+      "concept": "Agent 工具调用与授权",
+      "index": 9,
+      "expectedVerdict": "caught",
+      "syntheticTruth": "mastered",
+      "initialPassed": true,
+      "trapAnswer": "不成立。参数合法只说明格式正确，执行还要核验服务端身份、权限以及必要的用户确认。",
+      "answers": {
+        "concept": "Agent 可以通过结构化参数向工具发起操作请求。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。Agent 可以通过结构化参数向工具发起操作请求。",
+        "boundary": "模型生成合法参数只是提议，涉及受保护操作仍须服务端身份与权限校验。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 55,
+      "baselineGradedBy": "llm",
+      "candidate": "clear",
+      "candidateVerdict": "caught",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "caught",
+        "user_belief": "不成立，参数合法不等于用户授权，还需核验身份、权限和用户确认。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-9-missed",
+      "learnerId": "synthetic-9-missed",
+      "concept": "Agent 工具调用与授权",
+      "index": 9,
+      "expectedVerdict": "missed",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "陈述正确。模型生成合法工具参数就等于用户授权，这就是它的工作原理，所以实际应用中也可以直接这样判断。",
+      "answers": {
+        "concept": "Agent 可以通过结构化参数向工具发起操作请求。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。Agent 可以通过结构化参数向工具发起操作请求。",
+        "boundary": "模型生成合法工具参数就等于用户授权，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 25,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "missed",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "missed",
+        "user_belief": "用户认为陈述正确，并认可模型生成合法工具参数就等于用户授权。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    },
+    {
+      "id": "control-9-misidentified",
+      "learnerId": "synthetic-9-misidentified",
+      "concept": "Agent 工具调用与授权",
+      "index": 9,
+      "expectedVerdict": "misidentified",
+      "syntheticTruth": "false_mastery",
+      "initialPassed": true,
+      "trapAnswer": "错误在于工具不应使用结构化参数；模型生成合法参数就能代表用户授权。",
+      "answers": {
+        "concept": "Agent 可以通过结构化参数向工具发起操作请求。",
+        "application": "例如在真实项目中，先按这个机制处理请求，再检查结果是否符合要求。Agent 可以通过结构化参数向工具发起操作请求。",
+        "boundary": "模型生成合法工具参数就等于用户授权，因此无需额外检查这个条件。"
+      },
+      "baseline": "flagged",
+      "baselineScore": 20,
+      "baselineGradedBy": "llm",
+      "candidate": "flagged",
+      "candidateVerdict": "misidentified",
+      "verifierPassed": true,
+      "judgment": {
+        "verdict": "misidentified",
+        "user_belief": "用户认为错误在于工具不应使用结构化参数，而不是授权判断本身。",
+        "gradedBy": "judge",
+        "abstained": false
+      }
+    }
+  ],
+  "generation": [
+    {
+      "concept": "事务提交与回滚",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-de839fe2-3964-4277-a321-f85f585108a6",
+        "concept": "事务提交与回滚",
+        "prompt": "事务提交后可以直接回滚，撤销业务效果需要补偿操作。",
+        "injected_error": "事务提交后可以直接回滚",
+        "error_type": "边界外推",
+        "why_plausible": "学习者可能把事务提交前的回滚能力错误地延伸到提交之后，认为提交后仍能像未提交时一样直接回滚。",
+        "correct_version": "事务提交后不能直接回滚，撤销业务效果需要补偿操作。"
+      }
+    },
+    {
+      "concept": "SQL 参数化查询",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-b911f94c-850c-4ea4-8f31-19029890b8bd",
+        "concept": "SQL 参数化查询",
+        "prompt": "参数化查询把 SQL 代码与参数值分开处理。参数化保护的是绑定值；动态表名和列名无需白名单校验",
+        "injected_error": "动态表名和列名无需白名单校验",
+        "error_type": "边界外推",
+        "why_plausible": "参数化查询确实能有效防止绑定值中的 SQL 注入，学习者容易把这种保护范围从参数值外推到所有动态 SQL 元素，误以为表名和列名也自动安全。",
+        "correct_version": "参数化查询把 SQL 代码与参数值分开处理。参数化保护的是绑定值；动态表名和列名仍需白名单校验。"
+      }
+    },
+    {
+      "concept": "JavaScript Promise",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-2f0b958c-cff3-42d5-9ec0-af93c7e2970f",
+        "concept": "JavaScript Promise",
+        "prompt": "判断以下陈述是否正确：Promise 的 executor 在构造时异步调用，then 回调才进入微任务队列。",
+        "injected_error": "Promise 的 executor 在构造时异步调用",
+        "error_type": "因果颠倒",
+        "why_plausible": "Promise 常用于处理异步操作，学习者容易误以为与 Promise 相关的所有执行都是异步的，从而将 executor 的同步调用误认为异步调用。",
+        "correct_version": "Promise 的 executor 在构造时同步调用，then 回调才进入微任务队列。"
+      }
+    },
+    {
+      "concept": "HTTP 幂等性",
+      "generated": true,
+      "verifierPassed": false,
+      "trap": {
+        "id": "trap-5cf7caac-399b-40a0-b4bf-6a6ef3f619b2",
+        "concept": "HTTP 幂等性",
+        "prompt": "幂等描述同一操作重复执行后的预期服务端效果。幂等要求每次响应码或响应体相同，例如重复 DELETE 的响应必须相同。",
+        "injected_error": "幂等要求每次响应码或响应体相同，例如重复 DELETE 的响应必须相同",
+        "error_type": "条件放宽",
+        "why_plausible": "学习者容易把“重复执行后服务端效果相同”误解为“每次响应也必须相同”，因为响应码和响应体是最直观可观察的结果，且许多简单场景下响应确实一致。",
+        "correct_version": "幂等不要求每次响应码或响应体相同，例如重复 DELETE 的响应可不同。"
+      }
+    },
+    {
+      "concept": "TypeScript 运行时校验",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-bb48976d-86e5-44f5-ba94-a5d3fefb8581",
+        "concept": "TypeScript 运行时校验",
+        "prompt": "TypeScript 在编译阶段对程序做静态类型检查，并且类型断言会在编译后保留，用于验证外部 JSON 的运行时结构。",
+        "injected_error": "类型断言会在编译后保留，用于验证外部 JSON 的运行时结构",
+        "error_type": "因果颠倒",
+        "why_plausible": "类型断言听起来像是一种主动检查机制，容易让人误以为它能在运行时验证数据，而实际上它只是编译期的静态假设。",
+        "correct_version": "类型断言会在编译后擦除，不能验证外部 JSON 的运行时结构。"
+      }
+    },
+    {
+      "concept": "统计显著性与效应量",
+      "generated": true,
+      "verifierPassed": false,
+      "trap": {
+        "id": "trap-93b4097a-da62-4e5b-b529-0d0cc34a46d9",
+        "concept": "统计显著性与效应量",
+        "prompt": "在零假设下，p 值小就代表效应量大，因此只要 p 值足够小，就可以直接判断业务收益也很大。",
+        "injected_error": "p 值小就代表效应量大，因此只要 p 值足够小，就可以直接判断业务收益也很大",
+        "error_type": "因果颠倒",
+        "why_plausible": "统计显著性常被误认为等同于实际重要性，因为 p 值小意味着结果不太可能由随机波动产生，容易让人进一步推断效应一定很大、业务价值一定很高。",
+        "correct_version": "p 值小不代表效应大，也不代表业务收益大，需要同时查看效应量和区间。"
+      }
+    },
+    {
+      "concept": "A/B 测试随机分组",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-8f63216d-2b8f-4863-ba83-6e839291b38e",
+        "concept": "A/B 测试随机分组",
+        "prompt": "随机分组可以保证有限样本中处理组与对照组在每个协变量上都完全相同",
+        "injected_error": "随机分组可以保证有限样本中处理组与对照组在每个协变量上都完全相同",
+        "error_type": "边界外推",
+        "why_plausible": "随机分组确实能减少系统性选择偏差，因此容易让人误以为它能保证所有协变量完全一致，尤其是在样本量不大时。",
+        "correct_version": "随机分组有助于减少处理组与对照组的系统性选择偏差，但不能保证有限样本的每个协变量完全相同，需要检查分组和样本情况。"
+      }
+    },
+    {
+      "concept": "向量归一化与相似度",
+      "generated": true,
+      "verifierPassed": false,
+      "trap": {
+        "id": "trap-343c0a1f-e184-4293-9de1-4915f04b5af2",
+        "concept": "向量归一化与相似度",
+        "prompt": "判断以下陈述是否正确：点积等于余弦相似度需要两个非零向量都做单位长度归一化。",
+        "injected_error": "点积等于余弦相似度需要两个非零向量都做单位长度归一化",
+        "error_type": "条件放宽",
+        "why_plausible": "单位长度归一化确实能使点积等于余弦相似度，但该陈述把充分条件误当作必要条件，容易让人忽略其他等价条件。",
+        "correct_version": "点积等于余弦相似度需要两个非零向量都做单位长度归一化，或者点积结果除以两个向量的模长之积。"
+      }
+    },
+    {
+      "concept": "缓存 TTL 与一致性",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-0a0bd803-bd4a-4d99-8cbf-ebacf2ff5754",
+        "concept": "缓存 TTL 与一致性",
+        "prompt": "判断以下陈述是否正确：TTL 控制缓存条目在多长时间后失效，因此只要在 TTL 到期前读取缓存，就一定能读到最新值。",
+        "injected_error": "只要在 TTL 到期前读取缓存，就一定能读到最新值",
+        "error_type": "条件放宽",
+        "why_plausible": "TTL 确实控制缓存失效时间，容易让人误以为在有效期内缓存内容必然是最新的，忽略了写入方更新数据但未主动失效缓存的情况。",
+        "correct_version": "TTL 控制缓存条目在多长时间后失效，但 TTL 到期前仍可能读到旧值，不能保证强一致。"
+      }
+    },
+    {
+      "concept": "Agent 工具调用与授权",
+      "generated": true,
+      "verifierPassed": true,
+      "trap": {
+        "id": "trap-2ee93ef9-8b46-4ace-a6c1-ed45addc6949",
+        "concept": "Agent 工具调用与授权",
+        "prompt": "Agent 可以通过结构化参数向工具发起操作请求。模型生成合法参数即代表操作已获授权，涉及受保护操作无需服务端身份与权限校验。",
+        "injected_error": "模型生成合法参数即代表操作已获授权，涉及受保护操作无需服务端身份与权限校验",
+        "error_type": "条件放宽",
+        "why_plausible": "学习者可能误以为模型能生成合法参数就等同于系统已经认可该操作，从而忽略服务端仍需独立进行身份与权限校验这一安全边界。",
+        "correct_version": "模型生成合法参数只是提议，涉及受保护操作仍须服务端身份与权限校验。"
+      }
+    }
+  ],
+  "traces": [
+    {
+      "event": "growth-loop.request",
+      "requestId": "6b3908d8-8354-4def-8405-140d9a0b61b5",
+      "path": "/api/benchmark/verify-0",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1335.43,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 133,
+            "output": 49
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1334.28
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1334.69
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "0854216b-b29e-474e-b731-81f492f59844",
+      "path": "/api/benchmark/verify-1",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2120.96,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 137,
+            "output": 76
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2120.56
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 2120.78
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "f44f56dd-1138-4cd4-a73f-b649a4767355",
+      "path": "/api/benchmark/judge-control-0-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1313.18,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 137,
+            "output": 30
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1312.83
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1312.97
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "5a502f77-947c-4e20-8846-30f8128422da",
+      "path": "/api/benchmark/judge-control-1-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1310.4,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 142,
+            "output": 32
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1310.14
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1310.27
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "42a6cd8d-2332-40ce-b064-7a2a47f30f3f",
+      "path": "/api/benchmark/judge-control-0-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1065.07,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 139,
+            "output": 20
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1064.84
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1064.95
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "47e79657-e464-4f52-bf46-6892fb41c2ac",
+      "path": "/api/benchmark/judge-control-1-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1073.87,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 142,
+            "output": 21
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1073.66
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1073.76
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "2ab87c4b-69e1-4069-9061-3c8160a21a3f",
+      "path": "/api/benchmark/judge-control-0-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1446.44,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 132,
+            "output": 42
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1446.12
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1446.26
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "d176a465-87a7-42b3-b17c-e88e8a52e80f",
+      "path": "/api/benchmark/judge-control-1-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1597.36,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 135,
+            "output": 48
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1597.02
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1597.19
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "4e19e41c-368c-43ed-841f-c70617d299ee",
+      "path": "/api/benchmark/generator-0",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2331.07,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 168,
+            "output": 124
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2330.47
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2330.64
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "03e6407b-3a29-431e-bbd7-6d26436f5df3",
+      "path": "/api/benchmark/generator-1",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2671.18,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 170,
+            "output": 173
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2670.52
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2670.88
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "dcc678f7-dfa9-475d-b2e2-bab744aa385f",
+      "path": "/api/benchmark/generated-verifier-0",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1622.31,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 129,
+            "output": 55
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1621.54
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1621.89
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "55bbd0cb-8628-4a5d-9b54-f2f353effb63",
+      "path": "/api/benchmark/generated-verifier-1",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1391.74,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 161,
+            "output": 62
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1384.98
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1391.57
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "da0cd05a-0068-4cd8-ac4f-d62148e66bbb",
+      "path": "/api/benchmark/verify-2",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2218.02,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 141,
+            "output": 85
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2217.52
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 2217.81
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "8199614a-2347-4405-808c-af77d41d2145",
+      "path": "/api/benchmark/verify-3",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1484.06,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 142,
+            "output": 64
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1483.36
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1483.68
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "d0bd8a92-cad8-41cd-a4e5-12a04638fb08",
+      "path": "/api/benchmark/judge-control-2-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1304.6,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 144,
+            "output": 45
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1303.56
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1303.79
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "7f05e311-9955-473f-a64d-7bc4f2645684",
+      "path": "/api/benchmark/judge-control-3-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1180.84,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 146,
+            "output": 26
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1180.43
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1180.63
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "4ac6b9ae-fd85-4905-840d-660ce1bbedc5",
+      "path": "/api/benchmark/judge-control-3-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 952.4,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 151,
+            "output": 34
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 951.99
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 952.18
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "8413afa7-9bc1-44ab-865c-928720e83afa",
+      "path": "/api/benchmark/judge-control-2-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1691.8,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 145,
+            "output": 34
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1691.44
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1691.61
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "276bb136-123b-4a88-87cd-1f27e57321b5",
+      "path": "/api/benchmark/judge-control-3-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1514.5,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 142,
+            "output": 47
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1514.06
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1514.24
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "9fcfb630-0945-4547-a672-cd47677d563b",
+      "path": "/api/benchmark/judge-control-2-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1881.36,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 140,
+            "output": 82
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1881.06
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1881.21
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "865ad406-7f08-401f-ac10-f960ac0886c6",
+      "path": "/api/benchmark/generator-3",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2301.75,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 167,
+            "output": 144
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2301.2
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2301.44
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "dbe125d7-ce0e-4001-9ce1-eea80d500ceb",
+      "path": "/api/benchmark/generated-verifier-3",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1297.22,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 145,
+            "output": 54
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1296.82
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1297.03
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "f3d91149-2c02-4995-946e-ad7bc054cd46",
+      "path": "/api/benchmark/generator-2",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2933.63,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 173,
+            "output": 173
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2933.24
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2933.38
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "4fdd2931-fcc5-497c-8279-ba0890687ce7",
+      "path": "/api/benchmark/verify-4",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1382.02,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 139,
+            "output": 64
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1381.48
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1381.77
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "2c356238-ce0c-4cbd-9208-92bcd2e2306c",
+      "path": "/api/benchmark/generated-verifier-2",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1211.68,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 154,
+            "output": 54
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1211.33
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1211.46
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "48ce5ebd-f1d8-4ab0-b814-c250e7e424f4",
+      "path": "/api/benchmark/judge-control-4-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1645.15,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 148,
+            "output": 29
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1644.53
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1644.94
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "99087dc9-18ec-43e5-afb6-832a8c3fd756",
+      "path": "/api/benchmark/verify-5",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2104.96,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 142,
+            "output": 72
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2104.5
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 2104.69
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "f0810727-562b-4739-aa2f-7a83d1e33714",
+      "path": "/api/benchmark/judge-control-4-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1419.64,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 151,
+            "output": 39
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1419.21
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1419.42
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "64bacb74-61b3-469e-96d4-317ad0982b51",
+      "path": "/api/benchmark/judge-control-5-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1302.23,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 146,
+            "output": 42
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1301.96
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1302.1
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "65b56ec7-98bf-40ab-b038-173c00fd595f",
+      "path": "/api/benchmark/judge-control-4-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1129.6,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 144,
+            "output": 39
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1129.08
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1129.38
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "a225e9e4-7565-47ee-af9e-a10557a490b2",
+      "path": "/api/benchmark/judge-control-5-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1558.32,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 148,
+            "output": 30
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1558.05
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1558.19
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "0ff1d7c0-57bd-4ed5-8961-ce551b4fa971",
+      "path": "/api/benchmark/judge-control-5-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 906.43,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 144,
+            "output": 33
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 906.12
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 906.27
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "5335669b-dc86-4b17-92be-04546294b4e0",
+      "path": "/api/benchmark/generator-4",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2547.55,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 169,
+            "output": 145
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2547.12
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2547.29
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "8db8ba36-8139-489b-a2aa-ef50219f3f1d",
+      "path": "/api/benchmark/generated-verifier-4",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1403.17,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 147,
+            "output": 74
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1402.79
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1402.97
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "f0215b2b-7818-4071-9deb-94231477a3bb",
+      "path": "/api/benchmark/generator-5",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 3102.3,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 178,
+            "output": 167
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 3101.8
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 3102.01
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "6ebc77eb-3120-45ad-95f8-24db905f05a8",
+      "path": "/api/benchmark/verify-6",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1193.98,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 140,
+            "output": 61
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1192.99
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1193.2
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "386ed0a8-7a65-4747-bf23-1f2711ffe7fc",
+      "path": "/api/benchmark/judge-control-6-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1226.47,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 147,
+            "output": 38
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1226.04
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1226.24
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "53342705-0ec0-4dcf-893a-75e1028f6a05",
+      "path": "/api/benchmark/generated-verifier-5",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2287.85,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 151,
+            "output": 93
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2287.51
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 2287.69
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "acfdc432-fc93-4afd-8733-06c11a880646",
+      "path": "/api/benchmark/judge-control-6-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1294.78,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 148,
+            "output": 31
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1294.48
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1294.65
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "b911dd8e-c0af-4338-baf3-ebcf5eca63c0",
+      "path": "/api/benchmark/verify-7",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1870.02,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 141,
+            "output": 95
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1869.42
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1869.69
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "f870fc06-333f-499f-aa5f-1b7e583b9e71",
+      "path": "/api/benchmark/judge-control-6-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1779.35,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 142,
+            "output": 55
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1778.99
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1779.2
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "ddfee343-158c-4ee6-bf1c-8a1457060cb3",
+      "path": "/api/benchmark/judge-control-7-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1048.22,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 149,
+            "output": 38
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1047.91
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1048.08
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "74661ed8-1de0-428d-afa8-1c7b6b4cebd1",
+      "path": "/api/benchmark/judge-control-7-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1166.4,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 154,
+            "output": 30
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1166.1
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1166.24
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "08be15b6-ddb5-42dc-b7ab-bee4c2b5196d",
+      "path": "/api/benchmark/generator-6",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2567.57,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 172,
+            "output": 147
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2567.07
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2567.29
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "64af9dfa-9f05-44b7-8da7-20ff1328ac65",
+      "path": "/api/benchmark/judge-control-7-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1216.23,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 149,
+            "output": 39
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1215.91
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1216.09
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "5ce21e4d-26bd-46e7-8078-50086d046e79",
+      "path": "/api/benchmark/generated-verifier-6",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1338.41,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 146,
+            "output": 57
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1337.92
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1338.13
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "28177aae-175e-4954-b54a-86e0e8f1cac0",
+      "path": "/api/benchmark/verify-8",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1185.7,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 148,
+            "output": 61
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1185.32
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1185.48
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "15eaf713-82ec-4e06-aac1-111844792650",
+      "path": "/api/benchmark/generator-7",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2687.68,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 168,
+            "output": 161
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2687.18
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2687.48
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "c463e3b2-a606-41d3-9c76-831269c7abec",
+      "path": "/api/benchmark/judge-control-8-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1208.31,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 150,
+            "output": 37
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1207.93
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1208.1
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "24be4536-5b4f-4816-9d16-cdba4335eae0",
+      "path": "/api/benchmark/generated-verifier-7",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1280.31,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 154,
+            "output": 47
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1280.07
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1280.19
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "d093d12d-71ff-4030-aecf-8e424d08bbf9",
+      "path": "/api/benchmark/judge-control-8-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1259.75,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 154,
+            "output": 40
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1258.52
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1259.53
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "9324701b-64aa-4e56-98a8-c249ee3fbd11",
+      "path": "/api/benchmark/verify-9",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1753.62,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 139,
+            "output": 75
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1753.2
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1753.42
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "3d682109-fbca-4421-9a8e-83566d553868",
+      "path": "/api/benchmark/judge-control-8-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1236.63,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 148,
+            "output": 37
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1236.3
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1236.48
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "4e188b6d-eadb-4f55-a037-473527992e88",
+      "path": "/api/benchmark/judge-control-9-caught",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1057.5,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 142,
+            "output": 32
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1057.24
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1057.35
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "d9fbd56d-cfb2-446c-b129-a17d4249fb92",
+      "path": "/api/benchmark/generator-8",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2331.35,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 176,
+            "output": 170
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2330.94
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2331.13
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "aa26fa29-6dfc-44bf-98eb-73565d41f10b",
+      "path": "/api/benchmark/judge-control-9-missed",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1448.6,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 142,
+            "output": 29
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1448.18
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1448.39
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "0d6b447b-b37d-48a0-8cba-4f1f9eb58be4",
+      "path": "/api/benchmark/judge-control-9-misidentified",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1659.4,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "56cc3241d94918322215a235cdcd454a772c416fc677f3b1bf71dd26feec81a0",
+          "usage": {
+            "input": 135,
+            "output": 28
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1659
+        },
+        {
+          "stage": "verification.judge",
+          "status": "ok",
+          "durationMs": 1659.19
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "bdbd32a4-2084-4b44-8752-6fb1d2365445",
+      "path": "/api/benchmark/generated-verifier-8",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2117.02,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 161,
+            "output": 79
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2116.7
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 2116.84
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "dc73445f-e2d2-4d31-a393-a49d223dd1bf",
+      "path": "/api/benchmark/generator-9",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 2659.41,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "2d0fb8180e14cb62def09b56fe75f9e5b3d764f32a96e7d804e73b1cfff6869d",
+          "usage": {
+            "input": 171,
+            "output": 168
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 2651.97
+        },
+        {
+          "stage": "verification.generator",
+          "status": "ok",
+          "durationMs": 2659.08
+        }
+      ]
+    },
+    {
+      "event": "growth-loop.request",
+      "requestId": "cbd19528-fa2a-41db-a9e0-739263e73df3",
+      "path": "/api/benchmark/generated-verifier-9",
+      "method": "GET",
+      "status": 200,
+      "durationMs": 1670.95,
+      "codeVersion": "0.2.0-prototype",
+      "toolAttempts": 0,
+      "spans": [
+        {
+          "stage": "model",
+          "model": "deepseek-v4-pro",
+          "promptHash": "5efc22a7786cdfa6038d03be39f05b556434a3c33af70fe2ae522565ec4f087e",
+          "usage": {
+            "input": 154,
+            "output": 74
+          },
+          "status": "ok",
+          "httpStatus": 200,
+          "durationMs": 1670.61
+        },
+        {
+          "stage": "verification.verifier",
+          "status": "ok",
+          "durationMs": 1670.77
+        }
+      ]
+    }
+  ]
+}

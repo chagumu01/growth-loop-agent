@@ -11,7 +11,8 @@ const [flag, path] = process.argv.slice(2);
 if (flag !== '--data' || !path || process.argv.length !== 4) throw new Error('Usage: node --env-file=.env.local --import tsx scripts/eval/verification-replay.ts --data heldout.json');
 const contents = readFileSync(path, 'utf8');
 const samples = JSON.parse(contents) as Array<Record<string, unknown> & { id: string; quiz: GeneratedQuiz; answers: Record<string, string>; trap: Trap; trapAnswer: string }>;
-const predictions = [];
+const predictions: Record<string, unknown>[] = [];
+async function main() {
 for (const sample of samples) {
   if (!sample.quiz?.questions?.length || !sample.trap || typeof sample.trapAnswer !== 'string') throw new Error(`Incomplete replay sample: ${sample.id}`);
   // Run the existing single-role quiz grader, without the new context/role pipeline.
@@ -29,3 +30,5 @@ for (const sample of samples) {
 }
 // Redirection is explicit; no data file is silently created or overwritten.
 console.log(JSON.stringify(predictions, null, 2));
+}
+main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -15,7 +15,7 @@
     "eval": "node scripts/eval/run.mjs",
     "eval:llm": "node scripts/eval/run.mjs --llm",
     "eval:compare": "node scripts/eval/compare.mjs",
-    "eval:test": "node --test scripts/eval/engine.test.mjs scripts/eval/compare.test.mjs scripts/eval/cleanup.test.mjs scripts/eval/verification-metrics.test.mjs",
+    "eval:test": "node --test scripts/eval/engine.test.mjs scripts/eval/compare.test.mjs scripts/eval/cleanup.test.mjs scripts/eval/verification-metrics.test.mjs scripts/eval/verification-cli.test.mjs",
     "eval:verification": "node scripts/eval/verification-metrics.mjs",
     "learning:smoke": "node scripts/learning-program-smoke.mjs",
     "android:status": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/android-emulator.ps1 -Action status",
