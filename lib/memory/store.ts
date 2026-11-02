@@ -93,7 +93,7 @@ function localBackend(path: string): Backend {
 
 export class Database {
   private readonly context = new AsyncLocalStorage<Connection>();
-  constructor(private readonly client: Backend) {}
+  constructor(private readonly client: Backend, readonly isLocal = false) {}
   prepare(sql: string) {
     const execute = (...args: InValue[]) => (this.context.getStore() ?? this.client).execute({ sql, args });
     return {
@@ -127,12 +127,15 @@ export class Database {
 
 export async function migrateDatabase(db: Database) {
   await transaction(db, async () => {
-    const version = Number((await db.prepare('PRAGMA user_version').get())?.user_version ?? 0);
+    await db.exec('CREATE TABLE IF NOT EXISTS growth_schema_version(id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL)');
+    const stored = await db.prepare('SELECT version FROM growth_schema_version WHERE id=1').get();
+    const version = Number(stored?.version ?? (db.isLocal ? (await db.prepare('PRAGMA user_version').get())?.user_version : 0) ?? 0);
     if (version > migrations.length) throw new Error('数据库版本高于当前应用，请使用匹配版本。');
     for (let index = version; index < migrations.length; index++) {
       await db.exec(migrations[index]);
-      await db.exec(`PRAGMA user_version=${index + 1}`);
+      if (db.isLocal) await db.exec(`PRAGMA user_version=${index + 1}`);
     }
+    await db.prepare('INSERT INTO growth_schema_version VALUES(1,?) ON CONFLICT(id) DO UPDATE SET version=excluded.version').run(migrations.length);
   });
 }
 
@@ -154,13 +157,13 @@ export async function openDatabase(path?: string, options: { migrate?: boolean }
     }
     return response;
   } }) : localBackend(local);
-  const db = new Database(client as Backend);
+  const db = new Database(client as Backend, !url);
   try {
     // libSQL enables foreign keys on its connections. Local WAL keeps multi-process tests representative.
     if (!url) await db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
     if (options.migrate || !url) await migrateDatabase(db);
     else {
-      const version = Number((await db.prepare('PRAGMA user_version').get())?.user_version ?? 0);
+      const version = Number((await db.prepare('SELECT version FROM growth_schema_version WHERE id=1').get())?.version ?? 0);
       if (version !== migrations.length) throw new Error('数据库结构未就绪，请先运行受控迁移。');
     }
     return db;

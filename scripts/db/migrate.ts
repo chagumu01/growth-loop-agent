@@ -14,8 +14,8 @@ async function main() {
   console.log(JSON.stringify({ event: 'database_connection_verified' }));
   const db = await openDatabase(undefined, { migrate: true });
   try {
-    const row = await db.prepare('PRAGMA user_version').get();
-    console.log(JSON.stringify({ event: 'database_migrated', version: row?.user_version }));
+    const row = await db.prepare('SELECT version FROM growth_schema_version WHERE id=1').get();
+    console.log(JSON.stringify({ event: 'database_migrated', version: row?.version }));
   } finally { db.close(); }
 }
 main().catch(error => {
