@@ -501,7 +501,7 @@ export default function Home() {
         </div>
 
         <div className="sidebar-label">工作台</div>
-        <nav className="side-nav">
+        <nav className="side-nav" aria-label="工作台功能">
           {tabs.map(({ label, icon: Icon }) => (
             <button key={label} className={`side-nav-item ${activeTab === label ? "active" : ""}`} onClick={() => setActiveTab(label)}>
               <Icon size={18} />
@@ -509,6 +509,8 @@ export default function Home() {
               {label === "今日" && <span className="nav-dot" aria-label="有今日任务" />}
             </button>
           ))}
+          <Link className="side-nav-item" href="/actions"><ListChecks size={18} aria-hidden="true" /><span>行动与计划</span></Link>
+          <Link className="side-nav-item" href="/memory"><BookOpen size={18} aria-hidden="true" /><span>学习记忆</span></Link>
         </nav>
 
         <div className="sidebar-label sidebar-label-spaced">本周状态</div>
@@ -522,7 +524,6 @@ export default function Home() {
         </div>
 
         <div className="sidebar-bottom">
-          <Link className="help-link" href="/memory">学习记忆与来源</Link>
           <Link className="help-link" href="/account">账号与个人数据</Link>
           <button className="help-link" onClick={() => notify("小贴士：把下一步缩小到 10 分钟，先留下事实，晚报时再补充结果。")}><CircleHelp size={16} /> 使用小贴士</button>
           <div className="profile-chip">

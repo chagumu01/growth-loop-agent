@@ -17,6 +17,7 @@ import {
   Flame,
   Home as HomeIcon,
   LayoutDashboard,
+  ListChecks,
   Moon,
   MoreHorizontal,
   Plus,
@@ -128,6 +129,11 @@ export default function MobileAppShell({
           <button className="app-mobile-v3-avatar" aria-label="打开个人资料">{demoSeed.user.displayName.slice(0, 1)}</button>
         </div>
       </header>
+
+      <nav className="app-mobile-v3-workspace-links" aria-label="工作台功能">
+        <Link href="/actions"><ListChecks size={18} aria-hidden="true" /><span>行动与计划</span></Link>
+        <Link href="/memory"><BookOpen size={18} aria-hidden="true" /><span>学习记忆</span></Link>
+      </nav>
 
       <div ref={scrollRef} className={`app-mobile-v3-scroll ${isHome ? "is-home" : ""}`}>
         {activeTab === "今日" && (
