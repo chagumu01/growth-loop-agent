@@ -1,4 +1,6 @@
 import { modelFetch } from '../observability/trace';
+import { modelCallCount } from '../observability/trace';
+import { collectRun, type LearningContext } from '../skill/store';
 import type {
   CourseGenerationInput,
   CourseLesson,
@@ -400,7 +402,21 @@ function normalizeProgram(raw: UnknownRecord, fallback: LearningProgram): Learni
   };
 }
 
-export async function generateLearningProgram(input: CourseGenerationInput): Promise<LearningProgram> {
+export async function generateLearningProgram(input: CourseGenerationInput, context?: LearningContext): Promise<LearningProgram> {
+  const started = performance.now(), calls = modelCallCount();
+  try {
+    const result = await generateProgram(input);
+    collectRun(context, { taskType: 'course.generate', features: { subject: input.subject.trim().toLowerCase(), background: Boolean(input.background) },
+      steps: { input, result }, outcome: result.mode === 'llm' ? 'success' : 'failed', durationMs: performance.now() - started, modelCalls: modelCallCount() - calls });
+    return result;
+  } catch (error) {
+    collectRun(context, { taskType: 'course.generate', features: { subject: input.subject.trim().toLowerCase(), background: Boolean(input.background) },
+      steps: [], outcome: 'failed', durationMs: performance.now() - started, modelCalls: modelCallCount() - calls });
+    throw error;
+  }
+}
+
+async function generateProgram(input: CourseGenerationInput): Promise<LearningProgram> {
   const fallback = fallbackProgram(input);
   const llm = await requestLlm([
     {

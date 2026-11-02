@@ -7,7 +7,8 @@ export type TraceSpan = { stage: string; durationMs: number; status: 'ok' | 'err
   model?: string; promptHash?: string | null; usage?: Usage; httpStatus?: number };
 export type RequestTrace = { event: 'growth-loop.request'; requestId: string; path: string; method: string;
   status: number; durationMs: number; codeVersion: string; toolAttempts: number; spans: TraceSpan[];
-  retrieval?: { mode: string; topK: number; candidateLimit: number; rrfConstant: number; semanticThreshold: number } };
+  retrieval?: { mode: string; topK: number; candidateLimit: number; rrfConstant: number; semanticThreshold: number };
+  skill?: { id: string; version: number; outcome: string } };
 const context = new AsyncLocalStorage<RequestTrace>();
 const elapsed = (start: number) => Math.round((performance.now() - start) * 100) / 100;
 function category(error: unknown) {
@@ -25,6 +26,8 @@ export async function traceStage<T>(stage: string, work: () => Promise<T> | T): 
   catch (error) { context.getStore()?.spans.push({ stage, status: 'error', durationMs: elapsed(started), errorCategory: category(error) }); throw error; }
 }
 export function recordToolAttempts(attempts: number) { const trace = context.getStore(); if (trace && Number.isInteger(attempts)) trace.toolAttempts = attempts; }
+export function recordSkill(id: string, version: number, outcome: string) { const trace = context.getStore(); if (trace) trace.skill = { id, version, outcome }; }
+export function modelCallCount() { return context.getStore()?.spans.filter(span => span.stage === 'model').length ?? 0; }
 export function recordRetrieval(mode: string, topK: number) { const trace = context.getStore(); if (trace) trace.retrieval = { mode, topK, candidateLimit: 20, rrfConstant: 60, semanticThreshold: 0.35 }; }
 export async function traceRequest(request: Request, work: () => Promise<Response>, emit: (trace: RequestTrace) => void = value => console.log(JSON.stringify(value))) {
   const supplied = request.headers.get('x-request-id') || '';

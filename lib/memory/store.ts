@@ -30,6 +30,34 @@ const migrations = [String.raw`
   CREATE TABLE index_jobs(record_id TEXT NOT NULL REFERENCES records(id) ON DELETE CASCADE, version INTEGER NOT NULL,
     state TEXT NOT NULL CHECK(state IN ('pending','running','succeeded','failed')), attempts INTEGER NOT NULL DEFAULT 0,
     error TEXT, updated_at INTEGER NOT NULL, PRIMARY KEY(record_id,version));
+`, String.raw`
+  CREATE TABLE skill_runs(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),task_type TEXT NOT NULL,
+    input_digest TEXT NOT NULL,steps TEXT NOT NULL,outcome TEXT NOT NULL CHECK(outcome IN ('success','failed')),
+    duration_ms INTEGER NOT NULL,model_calls INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL);
+  CREATE INDEX skill_runs_owner_type ON skill_runs(user_id,task_type,input_digest,created_at);
+  CREATE TABLE skills(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),task_type TEXT NOT NULL,name TEXT NOT NULL,
+    trigger TEXT NOT NULL,params_schema TEXT NOT NULL,steps TEXT NOT NULL,acceptance TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('candidate','active','deprecated','archived')),version INTEGER NOT NULL DEFAULT 1,
+    predecessor TEXT REFERENCES skills(id),success_count INTEGER NOT NULL DEFAULT 0,fail_count INTEGER NOT NULL DEFAULT 0,
+    window_success REAL NOT NULL DEFAULT 0,embedding TEXT,embed_model TEXT,last_used_at INTEGER,
+    shadow_streak INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,
+    UNIQUE(user_id,task_type,name,version),UNIQUE(id,user_id));
+  CREATE INDEX skills_owner_type ON skills(user_id,task_type,status);
+  CREATE TABLE skill_executions(id TEXT PRIMARY KEY,skill_id TEXT NOT NULL,user_id TEXT NOT NULL REFERENCES users(id),
+    params TEXT NOT NULL,outcome TEXT NOT NULL CHECK(outcome IN ('success','failed','fallback')),
+    duration_ms INTEGER NOT NULL,model_calls INTEGER NOT NULL DEFAULT 0,penalize INTEGER NOT NULL DEFAULT 1,
+    shadow INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,
+    FOREIGN KEY(skill_id,user_id) REFERENCES skills(id,user_id));
+  CREATE INDEX skill_executions_skill ON skill_executions(skill_id,created_at);
+  CREATE TABLE misconceptions(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),concept TEXT NOT NULL,
+    description TEXT NOT NULL,source TEXT NOT NULL CHECK(source IN ('quiz','judge','manual')),occurrences INTEGER NOT NULL DEFAULT 1,
+    resolved INTEGER NOT NULL DEFAULT 0,first_seen INTEGER NOT NULL,last_seen INTEGER NOT NULL,
+    UNIQUE(user_id,concept,description));
+  CREATE INDEX misconceptions_owner ON misconceptions(user_id,resolved,last_seen);
+  CREATE TABLE verification_questions(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),quiz_id TEXT NOT NULL,
+    question TEXT NOT NULL,created_at INTEGER NOT NULL,UNIQUE(user_id,quiz_id));
+  CREATE TABLE verification_events(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),quiz_id TEXT NOT NULL,
+    stage TEXT NOT NULL,outcome TEXT NOT NULL,payload TEXT NOT NULL,created_at INTEGER NOT NULL);
 `];
 
 export function openDatabase(path = process.env.MEMORY_DB_PATH || resolve('.data', 'memory.sqlite')) {
