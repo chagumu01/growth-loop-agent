@@ -145,7 +145,15 @@ export async function openDatabase(path?: string, options: { migrate?: boolean }
   if (url && !url.startsWith('libsql://') && !url.startsWith('https://')) throw new Error('云端数据库必须使用 TLS。');
   const local = path ?? process.env.MEMORY_DB_PATH ?? resolve('.data', 'memory.sqlite');
   if (!url && local !== ':memory:') mkdirSync(dirname(resolve(/*turbopackIgnore: true*/ local)), { recursive: true });
-  const client = url ? createClient({ url, authToken: token }) : localBackend(local);
+  const client = url ? createClient({ url, authToken: token, fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fetch(input, init);
+    if (!response.ok) {
+      const detail = (await response.text()).slice(0, 500).replaceAll(token || '[unset]', '[redacted]')
+        .replace(/eyJ[A-Za-z0-9_.-]+/g, '[redacted]');
+      throw new Error(`Database HTTP ${response.status}: ${detail}`);
+    }
+    return response;
+  } }) : localBackend(local);
   const db = new Database(client as Backend);
   try {
     // libSQL enables foreign keys on its connections. Local WAL keeps multi-process tests representative.
