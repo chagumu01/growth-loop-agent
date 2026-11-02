@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { demoSeed, type Goal, type Task, type TaskKind, weeklyBars } from "@/lib/demo-data";
 
-export type MobileTab = "今日" | "计划" | "记录" | "成长" | "课程";
+export type MobileTab = "今日" | "计划" | "记录" | "成长" | "课程" | "学习记忆" | "行动与计划";
 
 type MobileLiveLog = {
   id: string;
@@ -64,6 +64,8 @@ type MobileAppShellProps = {
   onToggleFocus: () => void;
   toast: string;
   learningStudio: ReactNode;
+  memoryPanel: ReactNode;
+  actionsPanel: ReactNode;
 };
 
 const mobileTabs: Array<{ label: MobileTab; icon: typeof LayoutDashboard; short: string }> = [
@@ -94,6 +96,8 @@ export default function MobileAppShell({
   onToggleFocus,
   toast,
   learningStudio,
+  memoryPanel,
+  actionsPanel,
 }: MobileAppShellProps) {
   const [composerOpen, setComposerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -131,8 +135,8 @@ export default function MobileAppShell({
       </header>
 
       <nav className="app-mobile-v3-workspace-links" aria-label="工作台功能">
-        <Link href="/actions"><ListChecks size={18} aria-hidden="true" /><span>行动与计划</span></Link>
-        <Link href="/memory"><BookOpen size={18} aria-hidden="true" /><span>学习记忆</span></Link>
+        <button type="button" className={activeTab === "行动与计划" ? "is-active" : ""} aria-current={activeTab === "行动与计划" ? "page" : undefined} onClick={() => onNavigate("行动与计划")}><ListChecks size={18} aria-hidden="true" /><span>行动与计划</span></button>
+        <button type="button" className={activeTab === "学习记忆" ? "is-active" : ""} aria-current={activeTab === "学习记忆" ? "page" : undefined} onClick={() => onNavigate("学习记忆")}><BookOpen size={18} aria-hidden="true" /><span>学习记忆</span></button>
       </nav>
 
       <div ref={scrollRef} className={`app-mobile-v3-scroll ${isHome ? "is-home" : ""}`}>
@@ -165,11 +169,13 @@ export default function MobileAppShell({
           />
         )}
         {activeTab === "课程" && learningStudio}
-        {activeTab === "记录" && <><Link className="quiet-button" href="/memory">学习记忆 · 检索与来源</Link><MobileRecordsV3 logs={logs} onOpenComposer={() => openComposer()} /></>}
+        {activeTab === "学习记忆" && memoryPanel}
+        {activeTab === "行动与计划" && actionsPanel}
+        {activeTab === "记录" && <><button className="quiet-button" onClick={() => onNavigate("学习记忆")}>学习记忆 · 检索与来源</button><MobileRecordsV3 logs={logs} onOpenComposer={() => openComposer()} /></>}
         {activeTab === "成长" && <><Link className="quiet-button" href="/account">账号与个人数据</Link><MobileGrowthV3 earnedCoins={earnedCoins} /></>}
       </div>
 
-      {!isHome && activeTab !== "课程" && <button className="app-mobile-v3-fab" onClick={() => openComposer()} aria-label="打开随手记录">
+      {!isHome && activeTab !== "课程" && activeTab !== "学习记忆" && activeTab !== "行动与计划" && <button className="app-mobile-v3-fab" onClick={() => openComposer()} aria-label="打开随手记录">
         <Plus size={20} strokeWidth={2.8} />
         <span>记录</span>
       </button>}
