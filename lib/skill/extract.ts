@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { LearningContext } from './store';
 import { inputDigest } from './store';
-import { insertSkill, type SkillDefinition } from './service';
+import { insertSkill, renderSkill, type Skill, type SkillDefinition } from './service';
+import { validCourse } from './course';
 import type { CourseGenerationInput } from '../learning-program/types';
 
 export type ModelRequest = (messages: { role: 'system' | 'user'; content: string }[]) => Promise<{ content: string; provider: string } | null>;
@@ -28,6 +29,7 @@ export async function extractSkill(context: LearningContext, input: CourseGenera
     const data = JSON.parse(response.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''));
     const parameters = [...new Set([...JSON.stringify(data.template).matchAll(/\{\{(\w+)\}\}/g)].map(match => match[1]))];
     const definition: SkillDefinition = { name, taskType: 'course.generate', trigger: params, params: parameters, template: data.template, acceptance: ['course-shape'] };
+    if (!validCourse(renderSkill({ steps: JSON.stringify(data.template), params_schema: JSON.stringify(parameters) } as Skill, params), input)) return;
     insertSkill(context, definition);
   } catch { /* Invalid abstraction is discarded, never made active. */ }
 }
