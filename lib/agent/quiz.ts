@@ -230,7 +230,7 @@ function modelQuestions(value: unknown, fallback: GeneratedQuiz) {
 
 export async function generateLearningQuiz(content: string, topic?: string, output?: string, context?: LearningContext): Promise<GeneratedQuiz> {
   const quiz = await generateOrdinaryQuiz(content, topic, output);
-  return context ? addVerifiedTrap(context, quiz) : quiz;
+  return context ? (await addVerifiedTrap(context, quiz)) : quiz;
 }
 
 async function generateOrdinaryQuiz(content: string, topic?: string, output?: string): Promise<GeneratedQuiz> {
@@ -318,14 +318,14 @@ function normalizeFeedback(value: unknown, quiz: GeneratedQuiz, answers: Record<
 }
 
 export async function gradeLearningQuiz(quiz: GeneratedQuiz, answers: Record<string, string>, context?: LearningContext): Promise<QuizGrade> {
-  const stored = context ? storedQuiz(context, quiz.quizId) : undefined;
+  const stored = context ? (await storedQuiz(context, quiz.quizId)) : undefined;
   if (!stored || !context) return gradeOrdinaryQuiz(quiz, answers);
   const original = stored.quiz;
   const ordinary = { ...original, questions: original.questions.filter(q => q.id !== stored.trap.id), internalQuestions: original.internalQuestions.filter(q => q.id !== stored.trap.id) };
   const result = await gradeOrdinaryQuiz(ordinary, Object.fromEntries(ordinary.questions.map(q => [q.id, answers[q.id] || ''])));
   const verification = await gradeVerifiedTrap(context, original.quizId, answers[stored.trap.id] || '');
   if (!verification) return result;
-  try { recordComparison(context, original.quizId, result, verification, answers); } catch { /* Evaluation capture cannot invalidate grading. */ }
+  try { await recordComparison(context, original.quizId, result, verification, answers); } catch { /* Evaluation capture cannot invalidate grading. */ }
   const trapScore = verification.abstained ? 0 : verification.verdict === 'caught' ? 100 : 0;
   const score = verification.abstained ? result.score : Math.min(verification.requiresRelearning ? 59 : 100, Math.round((result.score * ordinary.questions.length + trapScore) / original.questions.length));
   return { ...result, score, level: verification.requiresRelearning ? '需要回看' : result.level,

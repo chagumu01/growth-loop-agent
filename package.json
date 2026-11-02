@@ -2,7 +2,9 @@
   "name": "growth-loop-agent",
   "version": "0.2.0-prototype",
   "private": true,
-  "engines": { "node": ">=22.13.0" },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -23,12 +25,15 @@
     "android:run": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/android-emulator.ps1 -Action run",
     "android:stop": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/android-emulator.ps1 -Action stop",
     "android:debug:doctor": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/debug-apk.ps1 -Action doctor",
-    "android:debug:inspect": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/debug-apk.ps1 -Action smoke"
+    "android:debug:inspect": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/debug-apk.ps1 -Action smoke",
+    "db:migrate": "tsx scripts/db/migrate.ts",
+    "db:verify": "tsx scripts/db/verify.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
+    "@libsql/client": "0.18.0",
     "lucide-react": "0.468.0",
     "next": "16.3.0",
     "react": "19.2.8",

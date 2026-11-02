@@ -69,7 +69,7 @@ async function handlePOST(request: Request) {
       const content = stringField(input, "content", true)!;
       const topic = stringField(input, "topic");
       const output = stringField(input, "output");
-      const quiz = await withLearningContext(context => generateLearningQuiz(content, topic, output, context));
+      const quiz = await withLearningContext(async context => await generateLearningQuiz(content, topic, output, context));
       return NextResponse.json({
         quizId: quiz.quizId,
         topic: quiz.topic,
@@ -90,11 +90,11 @@ async function handlePOST(request: Request) {
       answers[key] = value.trim().slice(0, 1_000);
     }
     const quiz = reconstructQuiz({ quizId: input.quizId, topic, source }, questions);
-    const result = await withLearningContext(context => gradeLearningQuiz(quiz, answers, context));
+    const result = await withLearningContext(async context => await gradeLearningQuiz(quiz, answers, context));
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "invalid quiz request");
   }
 }
 
-export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }
+export async function POST(request: Request) { return traceRequest(request, async () => await handlePOST(request)); }

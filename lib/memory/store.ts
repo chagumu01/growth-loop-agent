@@ -1,4 +1,7 @@
-import { DatabaseSync } from 'node:sqlite';
+import { createClient } from '@libsql/client/http';
+import type { InValue, Value } from '@libsql/client';
+import { DatabaseSync as LocalDatabase } from 'node:sqlite';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -60,25 +63,102 @@ const migrations = [String.raw`
     stage TEXT NOT NULL,outcome TEXT NOT NULL,payload TEXT NOT NULL,created_at INTEGER NOT NULL);
 `];
 
-export function openDatabase(path = process.env.MEMORY_DB_PATH || resolve('.data', 'memory.sqlite')) {
-  if (path !== ':memory:') mkdirSync(dirname(resolve(path)), { recursive: true });
-  const db = new DatabaseSync(path);
+type Executor = {
+  execute(statement: { sql: string; args: InValue[] }): Promise<{ rows: Record<string, Value>[]; rowsAffected: number; lastInsertRowid?: bigint }>;
+  executeMultiple(sql: string): Promise<void>;
+};
+type Connection = Executor & { commit(): Promise<void>; rollback(): Promise<void>; close(): void };
+type Backend = Executor & { transaction(mode: 'write'): Promise<Connection>; close(): void };
+
+function localBackend(path: string): Backend {
+  const local = new LocalDatabase(path);
+  const executor: Executor = {
+    async execute({ sql, args }) {
+      const statement = local.prepare(sql);
+      const values = args as Parameters<typeof statement.run>;
+      if (/^\s*(SELECT|PRAGMA|WITH)\b/i.test(sql)) return { rows: statement.all(...values) as Record<string, Value>[], rowsAffected: 0 };
+      const result = statement.run(...values);
+      return { rows: [], rowsAffected: Number(result.changes), lastInsertRowid: BigInt(result.lastInsertRowid) };
+    },
+    async executeMultiple(sql) { local.exec(sql); },
+  };
+  return { ...executor,
+    async transaction() {
+      local.exec('BEGIN IMMEDIATE');
+      return { ...executor, async commit() { local.exec('COMMIT'); }, async rollback() { local.exec('ROLLBACK'); }, close() {} };
+    },
+    close() { local.close(); },
+  };
+}
+
+export class Database {
+  private readonly context = new AsyncLocalStorage<Connection>();
+  constructor(private readonly client: Backend) {}
+  prepare(sql: string) {
+    const execute = (...args: InValue[]) => (this.context.getStore() ?? this.client).execute({ sql, args });
+    return {
+      get: async (...args: InValue[]): Promise<Record<string, Value> | undefined> => {
+        const row = (await execute(...args)).rows[0];
+        return row ? Object.fromEntries(Object.keys(row).map(key => [key, row[key]])) : undefined;
+      },
+      all: async (...args: InValue[]): Promise<Record<string, Value>[]> => (await execute(...args)).rows.map(row =>
+        Object.fromEntries(Object.keys(row).map(key => [key, row[key]]))),
+      run: async (...args: InValue[]) => {
+        const result = await execute(...args);
+        return { changes: result.rowsAffected, lastInsertRowid: result.lastInsertRowid };
+      },
+    };
+  }
+  async exec(sql: string) { await (this.context.getStore() ?? this.client).executeMultiple(sql); }
+  close() { this.client.close(); }
+  async transaction<T>(action: () => T | Promise<T>): Promise<T> {
+    if (this.context.getStore()) return action();
+    const tx = await this.client.transaction('write');
+    try {
+      const result = await this.context.run(tx, action);
+      await tx.commit();
+      return result;
+    } catch (error) {
+      try { await tx.rollback(); } catch { /* Preserve the original failure, including an ambiguous commit. */ }
+      throw error;
+    } finally { tx.close(); }
+  }
+}
+
+export async function migrateDatabase(db: Database) {
+  await transaction(db, async () => {
+    const version = Number((await db.prepare('PRAGMA user_version').get())?.user_version ?? 0);
+    if (version > migrations.length) throw new Error('数据库版本高于当前应用，请使用匹配版本。');
+    for (let index = version; index < migrations.length; index++) {
+      await db.exec(migrations[index]);
+      await db.exec(`PRAGMA user_version=${index + 1}`);
+    }
+  });
+}
+
+export async function openDatabase(path?: string, options: { migrate?: boolean } = {}) {
+  const url = path === undefined ? process.env.TURSO_DATABASE_URL?.trim() : undefined;
+  const token = process.env.TURSO_AUTH_TOKEN?.trim();
+  if (path === undefined && (url || token || process.env.VERCEL) && (!url || !token)) {
+    throw new Error('云端数据库配置不完整。');
+  }
+  if (url && !url.startsWith('libsql://') && !url.startsWith('https://')) throw new Error('云端数据库必须使用 TLS。');
+  const local = path ?? process.env.MEMORY_DB_PATH ?? resolve('.data', 'memory.sqlite');
+  if (!url && local !== ':memory:') mkdirSync(dirname(resolve(/*turbopackIgnore: true*/ local)), { recursive: true });
+  const client = url ? createClient({ url, authToken: token }) : localBackend(local);
+  const db = new Database(client as Backend);
   try {
-    db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
-    transaction(db, () => {
-      const version = Number((db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
-      if (version > migrations.length) throw new Error('数据库版本高于当前应用，请使用匹配版本。');
-      for (let index = version; index < migrations.length; index++) {
-        db.exec(migrations[index]);
-        db.exec(`PRAGMA user_version=${index + 1}`);
-      }
-    });
+    // libSQL enables foreign keys on its connections. Local WAL keeps multi-process tests representative.
+    if (!url) await db.exec('PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
+    if (options.migrate || !url) await migrateDatabase(db);
+    else {
+      const version = Number((await db.prepare('PRAGMA user_version').get())?.user_version ?? 0);
+      if (version !== migrations.length) throw new Error('数据库结构未就绪，请先运行受控迁移。');
+    }
     return db;
   } catch (error) { db.close(); throw error; }
 }
 
-export function transaction<T>(db: DatabaseSync, action: () => T): T {
-  db.exec('BEGIN IMMEDIATE');
-  try { const result = action(); db.exec('COMMIT'); return result; }
-  catch (error) { db.exec('ROLLBACK'); throw error; }
+export function transaction<T>(db: Database, action: () => T | Promise<T>): Promise<T> {
+  return db.transaction(action);
 }

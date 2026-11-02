@@ -12,13 +12,13 @@ const topics = [
   ['Agent 工具契约', '用结构化输入输出定义工具边界'],
   ['Agent 原型验证', '用最小测试验证任务闭环和失败边界'],
 ];
-export function seedCourseSkills(context: LearningContext, build: (input: CourseGenerationInput) => LearningProgram) {
+export async function seedCourseSkills(context: LearningContext, build: (input: CourseGenerationInput) => LearningProgram) {
   for (const [subject, goal] of topics) {
     const name = `seed:${subject}`;
-    if (context.db.prepare('SELECT id FROM skills WHERE user_id=? AND name=?').get(context.owner, name)) continue;
+    if ((await context.db.prepare('SELECT id FROM skills WHERE user_id=? AND name=?').get(context.owner, name))) continue;
     const input = { subject, goal, weeklyHours: 4, lessonCount: 5 };
     const template = build(input);
     template.subject = '{{subject}}'; template.goal = '{{goal}}';
-    insertSkill(context, { name, taskType: 'course.generate', trigger: skillParams(input), params: ['subject', 'goal'], template, acceptance: ['course-shape'] });
+    await insertSkill(context, { name, taskType: 'course.generate', trigger: skillParams(input), params: ['subject', 'goal'], template, acceptance: ['course-shape'] });
   }
 }

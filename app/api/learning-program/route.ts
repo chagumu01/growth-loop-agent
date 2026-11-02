@@ -66,7 +66,7 @@ async function handlePOST(request: Request) {
     if (action === "generate") {
       const weeklyHours = Math.max(1, Math.min(20, Number(body.weeklyHours) || 4));
       const lessonCount = Math.max(3, Math.min(5, Number(body.lessonCount) || 5));
-      const program = await withLearningContext(context => generateLearningProgram({
+      const program = await withLearningContext(async context => await generateLearningProgram({
         subject: requiredText(body.subject, "学习主题", 180),
         goal: requiredText(body.goal, "学习目标", 500),
         background: optionalText(body.background, 500),
@@ -105,4 +105,4 @@ async function handlePOST(request: Request) {
 
 export async function GET(request: Request) { return traceRequest(request, () => handleGET()); }
 
-export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }
+export async function POST(request: Request) { return traceRequest(request, async () => await handlePOST(request)); }

@@ -32,8 +32,8 @@ test('role payloads enforce context isolation and reject unverifiable questions'
 });
 
 test('configured model pipeline grades stored questions, persists evidence and caps false mastery', async () => {
-  const db = openDatabase(':memory:');
-  db.prepare('INSERT INTO users VALUES(?,?,?)').run('alice', 'alice', 'test');
+  const db = await openDatabase(':memory:');
+  await db.prepare('INSERT INTO users VALUES(?,?,?)').run('alice', 'alice', 'test');
   const context = { db, owner: 'alice' }, originalFetch = globalThis.fetch;
   const keys = ['LLM_API_KEY', 'LLM_BASE_URL', 'LLM_MODEL', 'VERIFICATION_ENABLED', 'LLM_THINKING_MODE'];
   const previous = keys.map(key => process.env[key]);
@@ -64,10 +64,10 @@ test('configured model pipeline grades stored questions, persists evidence and c
     assert.equal(grade.feedback.length, 4);
     const judge = requests.find(row => row.system.startsWith('根据题目与已独立'))!;
     assert.deepEqual(Object.keys(judge.input).sort(), ['error_location', 'prompt', 'user_answer']);
-    const saved = db.prepare("SELECT payload FROM verification_events WHERE stage='judge'").get() as { payload: string };
+    const saved = (await db.prepare("SELECT payload FROM verification_events WHERE stage='judge'").get()) as { payload: string };
     assert.match(saved.payload, /userAnswer/);
-    assert.equal(unresolved(context, '事务').length, 1);
-    const comparison = JSON.parse((db.prepare("SELECT payload FROM verification_events WHERE stage='comparison'").get() as { payload: string }).payload);
+    assert.equal((await unresolved(context, '事务')).length, 1);
+    const comparison = JSON.parse(((await db.prepare("SELECT payload FROM verification_events WHERE stage='comparison'").get()) as { payload: string }).payload);
     assert.equal(comparison.baseline, 'clear');
     assert.equal(comparison.candidate, 'flagged');
     assert.equal(comparison.initialPassed, null);
@@ -79,8 +79,8 @@ test('configured model pipeline grades stored questions, persists evidence and c
 });
 
 test('verified questions stay server-side, ratio stays bounded and misconceptions are owner scoped', async () => {
-  const db = openDatabase(':memory:');
-  for (const owner of ['alice', 'bob']) db.prepare('INSERT INTO users VALUES(?,?,?)').run(owner, owner, 'test');
+  const db = await openDatabase(':memory:');
+  for (const owner of ['alice', 'bob']) await db.prepare('INSERT INTO users VALUES(?,?,?)').run(owner, owner, 'test');
   const context = { db, owner: 'alice' }, enabled = process.env.VERIFICATION_ENABLED;
   process.env.VERIFICATION_ENABLED = 'true';
   const call: RoleCall = async role => role === 'generator' ? trap : role === 'verifier' ? { is_wrong: true, error_location: trap.injected_error, evidence: '事务提交后不能回滚' } : { verdict: 'misidentified', user_belief: '回滚等于补偿' };
@@ -90,13 +90,13 @@ test('verified questions stay server-side, ratio stays bounded and misconception
     assert.equal(quiz.questions.length, 4);
     assert.ok(1 / quiz.questions.length <= 0.3);
     assert.equal(JSON.stringify(quiz.questions).includes('correct_version'), false);
-    assert.equal(storedQuiz({ db, owner: 'bob' }, quiz.quizId), undefined);
+    assert.equal((await storedQuiz({ db, owner: 'bob' }, quiz.quizId)), undefined);
     const grade = await gradeVerifiedTrap(context, quiz.quizId, '回滚等于补偿', call);
     assert.equal(grade?.requiresRelearning, true);
-    assert.equal(unresolved(context, '事务').length, 1);
-    assert.equal(unresolved({ db, owner: 'bob' }, '事务').length, 0);
+    assert.equal((await unresolved(context, '事务')).length, 1);
+    assert.equal((await unresolved({ db, owner: 'bob' }, '事务')).length, 0);
     assert.equal((await gradeVerifiedTrap(context, quiz.quizId, '对', async () => null))?.abstained, true);
-    assert.equal(unresolved(context, '事务').length, 1);
+    assert.equal((await unresolved(context, '事务')).length, 1);
     assert.equal(await gradeVerifiedTrap({ db, owner: 'bob' }, quiz.quizId, '对', call), null);
     const shortQuiz = { ...ordinary, quizId: 'short', questions: ordinary.questions.slice(0, 2) };
     assert.equal((await addVerifiedTrap(context, shortQuiz, call)).questions.length, 2);

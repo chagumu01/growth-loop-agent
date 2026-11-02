@@ -6,7 +6,7 @@ import type { LearningContext } from '../skill/store';
 export async function withLearningContext<T>(work: (context?: LearningContext) => Promise<T>) {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return work();
-  const db = openDatabase();
-  try { return await work({ db, owner: authenticate(db, token).id }); }
+  const db = await openDatabase();
+  try { return await work({ db, owner: (await authenticate(db, token)).id }); }
   finally { db.close(); }
 }
