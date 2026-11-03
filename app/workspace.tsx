@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Capacitor } from "@capacitor/core";
 import dynamic from "next/dynamic";
 import { SessionProvider, useSession } from "./session";
+import ProfileMenu from "./profile-menu";
 import {
   ArrowUpRight,
   BarChart3,
@@ -21,7 +22,6 @@ import {
   LayoutDashboard,
   ListChecks,
   MessageCircle,
-  MoreHorizontal,
   Pause,
   Play,
   Plus,
@@ -549,12 +549,11 @@ function WorkspaceContent({ initialTab }: { initialTab: Tab }) {
         </div>
 
         <div className="sidebar-bottom">
-          <button className={`help-link account-nav-item ${activeTab === "账号与个人数据" ? "active" : ""}`} aria-current={activeTab === "账号与个人数据" ? "page" : undefined} onClick={() => setActiveTab("账号与个人数据")}>账号与个人数据</button>
           <button className="help-link" onClick={() => notify("小贴士：把下一步缩小到 10 分钟，先留下事实，晚报时再补充结果。")}><CircleHelp size={16} /> 使用小贴士</button>
           <div className="profile-chip">
             <div className="avatar">{avatarLabel}</div>
             <div className="profile-meta"><strong title={profileName}>{profileName}</strong><span>{user ? "已登录 · 个人账号" : "登录后同步个人数据"}</span></div>
-            <MoreHorizontal size={16} className="muted-icon" />
+            <ProfileMenu onOpenAccount={() => setActiveTab("账号与个人数据")} />
           </div>
         </div>
       </aside>
