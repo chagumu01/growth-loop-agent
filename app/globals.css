@@ -53,9 +53,16 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(240, 120,
 .profile-meta strong { color: #f6efe4; font-size: 12px; font-weight: 600; }
 .profile-meta { min-width: 0; }
 .profile-meta strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.account-nav-item { width: 100%; padding: 10px 12px; margin-bottom: 15px; border-radius: 9px; text-align: left; }
-.account-nav-item.active { color: #fff8ed; background: #27414e; box-shadow: inset 3px 0 0 var(--coral); }
-.account-nav-item:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+.profile-menu { position: relative; flex: 0 0 auto; margin-left: auto; }
+.profile-menu summary { width: 32px; height: 32px; display: grid; place-items: center; list-style: none; border-radius: 8px; color: #a4babd; cursor: pointer; }
+.profile-menu summary::-webkit-details-marker { display: none; }
+.profile-menu summary:hover, .profile-menu[open] summary { color: #fff8ed; background: rgba(255,255,255,.09); }
+.profile-menu summary:focus-visible, .profile-menu-popover button:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+.profile-menu-popover { position: absolute; right: 0; bottom: calc(100% + 12px); z-index: 30; width: 180px; padding: 7px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); box-shadow: 0 12px 35px rgba(0,0,0,.2); }
+.profile-menu-popover button { width: 100%; min-height: 40px; display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 7px; background: transparent; color: var(--ink); text-align: left; font: inherit; font-size: 12px; }
+.profile-menu-popover button:hover { background: var(--paper-deep); }
+.profile-menu-popover button:disabled { opacity: .55; cursor: wait; }
+.profile-menu-popover p { margin: 8px 10px; color: #a33d28; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .cloud-account-form { display: grid; gap: 16px; }
 .profile-meta span { color: #819599; font-size: 9px; margin-top: 4px; }
 
