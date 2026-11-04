@@ -73,7 +73,7 @@ await Promise.all(Array.from({ length: 2 }, async () => {
       const cached = baselineCache?.samples.find(row => row.id === fixture.id);
       if (baselineCache && !cached) throw new Error(`Missing cached pair: ${fixture.id}`);
       const [baseline, judgment] = await Promise.all([
-        cached ? Promise.resolve({ score: cached.baselineScore, gradedBy: cached.baselineGradedBy }) : traced(`baseline-${fixture.id}`, () => gradeLearningQuiz(ordinary(index), fixture.answers)),
+        cached ? Promise.resolve({ score: cached.baselineScore, gradedBy: cached.baselineGradedBy }) : traced(`baseline-${fixture.id}`, async () => (await gradeLearningQuiz(ordinary(index), fixture.answers))),
         verified ? traced(`judge-${fixture.id}`, () => judgeAnswer(verified, fixture.trapAnswer)) : Promise.resolve(null),
       ]);
       results.push({ ...fixture, baseline: baseline.gradedBy === 'llm' ? baseline.score < 60 ? 'flagged' : 'clear' : 'abstained', baselineScore: baseline.score,

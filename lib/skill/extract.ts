@@ -15,11 +15,11 @@ export function skillParams(input: CourseGenerationInput) {
 }
 export async function extractSkill(context: LearningContext, input: CourseGenerationInput, request: ModelRequest) {
   const { db, owner } = context, digest = inputDigest('course.generate', skillFeatures(input));
-  const runs = db.prepare('SELECT outcome,steps FROM skill_runs WHERE user_id=? AND task_type=? AND input_digest=? ORDER BY created_at DESC,rowid DESC LIMIT 5').all(owner, 'course.generate', digest) as { outcome: string; steps: string }[];
+  const runs = (await db.prepare('SELECT outcome,steps FROM skill_runs WHERE user_id=? AND task_type=? AND input_digest=? ORDER BY created_at DESC,rowid DESC LIMIT 5').all(owner, 'course.generate', digest)) as { outcome: string; steps: string }[];
   if (runs.filter(run => run.outcome === 'success').length < 3 || runs.filter(run => run.outcome === 'success').length / runs.length < 0.8) return;
   const params = skillParams(input);
   const name = `course:${createHash('sha256').update(JSON.stringify(params)).digest('hex').slice(0, 20)}`;
-  if (db.prepare("SELECT id FROM skills WHERE user_id=? AND name=? AND status IN ('candidate','active')").get(owner, name)) return;
+  if ((await db.prepare("SELECT id FROM skills WHERE user_id=? AND name=? AND status IN ('candidate','active')").get(owner, name))) return;
   const response = await request([
     { role: 'system', content: '将成功课程轨迹抽象为可复用 JSON 课程模板。不改变知识内容。只输出 {"template":完整课程对象}，用 {{subject}}、{{goal}}、{{background}} 参数替换对应输入值。至少使用一个参数；禁止代码或额外说明。' },
     { role: 'user', content: JSON.stringify({ params, runs: runs.filter(run => run.outcome === 'success').map(run => JSON.parse(run.steps)) }) },
@@ -30,6 +30,6 @@ export async function extractSkill(context: LearningContext, input: CourseGenera
     const parameters = [...new Set([...JSON.stringify(data.template).matchAll(/\{\{(\w+)\}\}/g)].map(match => match[1]))];
     const definition: SkillDefinition = { name, taskType: 'course.generate', trigger: params, params: parameters, template: data.template, acceptance: ['course-shape'] };
     if (!validCourse(renderSkill({ steps: JSON.stringify(data.template), params_schema: JSON.stringify(parameters) } as Skill, params), input)) return;
-    insertSkill(context, definition);
+    await insertSkill(context, definition);
   } catch { /* Invalid abstraction is discarded, never made active. */ }
 }
