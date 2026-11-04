@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "suiteVersion": "2026-11-02.v3",
+  "suiteHash": "501c9bf3c6996eee150b0856da234484fc3568bbc35cdcc18d69314e5c212810",
+  "sourceHashes": {
+    "lib/agent/provider.ts": "929757cc140723c13b571b66f286810abd60031df6e0b3440350ec2c781dfadf",
+    "lib/agent/understanding.ts": "ff2f80ad1ecf80f226a5f552c8636768e4fc5534ed613fe9b1eb3f929f58cdc8",
+    "lib/agent/quiz.ts": "8e4e2400a3699abdf3e73db0555494156f154b99d621ad573df725274411b9ff",
+    "lib/learning-program/service.ts": "4ec04704bcab7bc0910308629ff27d1a0e13c4ba2b0a402ae4f78d20483fe381"
+  },
+  "model": {
+    "provider": "demo",
+    "model": null
+  },
+  "summary": {
+    "passed": 33,
+    "failed": 0,
+    "not_implemented": 0
+  },
+  "results": [
+    {
+      "id": "agent-status",
+      "status": "passed"
+    },
+    {
+      "id": "learning-record",
+      "status": "passed"
+    },
+    {
+      "id": "exercise-record",
+      "status": "passed"
+    },
+    {
+      "id": "rest-record",
+      "status": "passed"
+    },
+    {
+      "id": "life-record",
+      "status": "passed"
+    },
+    {
+      "id": "plan-intent",
+      "status": "passed"
+    },
+    {
+      "id": "review-intent",
+      "status": "passed"
+    },
+    {
+      "id": "ambiguous-record",
+      "status": "passed"
+    },
+    {
+      "id": "plan-missing-duration",
+      "status": "passed"
+    },
+    {
+      "id": "explicit-output",
+      "status": "passed"
+    },
+    {
+      "id": "correction-retains-evidence",
+      "status": "passed"
+    },
+    {
+      "id": "conversation-separation-not-auth",
+      "status": "passed"
+    },
+    {
+      "id": "array-body",
+      "status": "passed"
+    },
+    {
+      "id": "empty-message",
+      "status": "passed"
+    },
+    {
+      "id": "numeric-message",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-output",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-context",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-json",
+      "status": "passed"
+    },
+    {
+      "id": "quiz-feedback",
+      "status": "passed"
+    },
+    {
+      "id": "quiz-invalid-action",
+      "status": "passed"
+    },
+    {
+      "id": "course-tutor-feedback",
+      "status": "passed"
+    },
+    {
+      "id": "course-missing-subject",
+      "status": "passed"
+    },
+    {
+      "id": "demo-seed",
+      "status": "passed"
+    },
+    {
+      "id": "plan-query",
+      "status": "passed"
+    },
+    {
+      "id": "review-scheduling",
+      "status": "passed"
+    },
+    {
+      "id": "persistent-record",
+      "status": "passed"
+    },
+    {
+      "id": "trusted-user-acl",
+      "status": "passed"
+    },
+    {
+      "id": "confirmation-cancel-expiry",
+      "status": "passed"
+    },
+    {
+      "id": "idempotence-recovery",
+      "status": "passed"
+    },
+    {
+      "id": "memory-retrieval-citations",
+      "status": "passed"
+    },
+    {
+      "id": "retrieval-update-delete",
+      "status": "passed"
+    },
+    {
+      "id": "skill-course-telemetry",
+      "status": "passed"
+    },
+    {
+      "id": "verification-conservative-fallback",
+      "status": "passed"
+    }
+  ]
+}

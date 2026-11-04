@@ -1,3 +1,5 @@
+import { traceRequest } from '@/lib/observability/trace';
+import { withLearningContext } from '@/lib/memory/learning-context';
 import { NextResponse } from "next/server";
 import { generateLearningQuiz, gradeLearningQuiz, type GeneratedQuiz, type QuizQuestion } from "@/lib/agent/quiz";
 
@@ -18,7 +20,7 @@ function stringField(input: Record<string, unknown>, key: string, required = fal
 
 function parseQuestions(value: unknown): QuizQuestion[] {
   if (!Array.isArray(value) || value.length < 2) throw new Error("questions must contain at least 2 items");
-  return value.slice(0, 3).map((item) => {
+  return value.slice(0, 4).map((item) => {
     if (!item || typeof item !== "object") throw new Error("invalid question");
     const question = item as Record<string, unknown>;
     if (typeof question.id !== "string" || typeof question.prompt !== "string") throw new Error("invalid question");
@@ -49,7 +51,7 @@ function reconstructQuiz(input: Record<string, unknown>, questions: QuizQuestion
   };
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
       const content = stringField(input, "content", true)!;
       const topic = stringField(input, "topic");
       const output = stringField(input, "output");
-      const quiz = await generateLearningQuiz(content, topic, output);
+      const quiz = await withLearningContext(async context => await generateLearningQuiz(content, topic, output, context));
       return NextResponse.json({
         quizId: quiz.quizId,
         topic: quiz.topic,
@@ -88,9 +90,11 @@ export async function POST(request: Request) {
       answers[key] = value.trim().slice(0, 1_000);
     }
     const quiz = reconstructQuiz({ quizId: input.quizId, topic, source }, questions);
-    const result = await gradeLearningQuiz(quiz, answers);
+    const result = await withLearningContext(async context => await gradeLearningQuiz(quiz, answers, context));
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "invalid quiz request");
   }
 }
+
+export async function POST(request: Request) { return traceRequest(request, async () => await handlePOST(request)); }

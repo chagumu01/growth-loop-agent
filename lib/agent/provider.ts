@@ -1,3 +1,4 @@
+import { modelFetch } from '../observability/trace';
 import { getAgentSession, saveAgentSession } from "./session";
 import { buildActionReply, parseAction, type ActionKind, type ParsedIntent } from "./understanding";
 
@@ -128,7 +129,7 @@ export async function runAgent(
   const timeout = setTimeout(() => controller.abort(), options?.timeoutMs ?? 12_000);
 
   try {
-    const response = await fetch(`${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    const response = await modelFetch('model', `${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

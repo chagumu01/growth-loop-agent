@@ -1,3 +1,5 @@
+import { traceRequest } from '@/lib/observability/trace';
+import { withLearningContext } from '@/lib/memory/learning-context';
 import { NextResponse } from "next/server";
 
 import {
@@ -50,13 +52,13 @@ function answerMap(value: unknown) {
   );
 }
 
-export async function GET() {
+async function handleGET() {
   return NextResponse.json(getLearningProgramStatus(), {
     headers: { "Cache-Control": "no-store" },
   });
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     const body = asBody(await request.json());
     const action = optionalText(body.action, 24);
@@ -64,13 +66,13 @@ export async function POST(request: Request) {
     if (action === "generate") {
       const weeklyHours = Math.max(1, Math.min(20, Number(body.weeklyHours) || 4));
       const lessonCount = Math.max(3, Math.min(5, Number(body.lessonCount) || 5));
-      const program = await generateLearningProgram({
+      const program = await withLearningContext(async context => await generateLearningProgram({
         subject: requiredText(body.subject, "学习主题", 180),
         goal: requiredText(body.goal, "学习目标", 500),
         background: optionalText(body.background, 500),
         weeklyHours,
         lessonCount,
-      });
+      }, context));
       return NextResponse.json({ program });
     }
 
@@ -100,3 +102,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
+
+export async function GET(request: Request) { return traceRequest(request, () => handleGET()); }
+
+export async function POST(request: Request) { return traceRequest(request, async () => await handlePOST(request)); }

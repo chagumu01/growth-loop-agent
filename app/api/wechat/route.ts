@@ -1,3 +1,4 @@
+import { traceRequest } from '@/lib/observability/trace';
 import { runAgent } from "@/lib/agent/provider";
 import { isWechatSignatureValid, parseWechatXml, xmlTextReply } from "@/lib/wechat/adapter";
 
@@ -33,7 +34,7 @@ function isValidRequest(request: Request) {
   );
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const token = process.env.WECHAT_TOKEN?.trim();
   if (!token) return textResponse("WECHAT_TOKEN is not configured", 503);
   if (!isValidRequest(request)) return textResponse("invalid signature", 401);
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
   return echostr ? textResponse(echostr) : textResponse("echostr is required", 400);
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const token = process.env.WECHAT_TOKEN?.trim();
   if (!token) return textResponse("WECHAT_TOKEN is not configured", 503);
   if (!isValidRequest(request)) return textResponse("invalid signature", 401);
@@ -73,3 +74,7 @@ export async function POST(request: Request) {
     return textResponse("wechat message unavailable", 500);
   }
 }
+
+export async function GET(request: Request) { return traceRequest(request, () => handleGET(request)); }
+
+export async function POST(request: Request) { return traceRequest(request, () => handlePOST(request)); }

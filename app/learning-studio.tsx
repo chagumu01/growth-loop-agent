@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import SaveFeedback from './memory/save-feedback';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -69,6 +70,7 @@ export default function LearningStudio({ compact = false, onBack, onAddLesson }:
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [grades, setGrades] = useState<Record<string, CourseLessonGrade>>({});
+  const [gradedAnswers, setGradedAnswers] = useState<Record<string, Record<string, string>>>({});
   const [tutorInput, setTutorInput] = useState("");
   const [tutorReply, setTutorReply] = useState<LessonTutorReply | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -131,6 +133,7 @@ export default function LearningStudio({ compact = false, onBack, onAddLesson }:
       setCompletedLessonIds([]);
       setAnswers({});
       setGrades({});
+      setGradedAnswers({});
       const opening: LessonTutorReply = {
         lessonId: data.program.lessons[0]?.id || "",
         reply: data.program.instructor.openingMessage,
@@ -182,6 +185,7 @@ export default function LearningStudio({ compact = false, onBack, onAddLesson }:
     }
     setIsGrading(true);
     setError("");
+    const submittedAnswers = { ...answers };
     try {
       const response = await fetch("/api/learning-program", {
         method: "POST",
@@ -190,12 +194,13 @@ export default function LearningStudio({ compact = false, onBack, onAddLesson }:
           action: "grade",
           course: program,
           lessonId: activeLesson.id,
-          answers,
+          answers: submittedAnswers,
         }),
       });
       const data = (await response.json()) as { grade?: CourseLessonGrade; error?: string };
       if (!response.ok || !data.grade) throw new Error(data.error || "暂时无法评分。");
       setGrades((current) => ({ ...current, [activeLesson.id]: data.grade! }));
+      setGradedAnswers((current) => ({ ...current, [activeLesson.id]: submittedAnswers }));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "暂时无法评分。");
     } finally {
@@ -309,7 +314,7 @@ export default function LearningStudio({ compact = false, onBack, onAddLesson }:
                 <div className="learning-question-list">
                   {activeLesson.questions.map((question, index) => <label className="learning-question" key={question.id}><span>{String(index + 1).padStart(2, "0")} · {question.kind}</span><strong>{question.prompt}</strong><small>{question.hint}</small><textarea value={answers[question.id] || ""} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} placeholder="用自己的话写下理解，不需要写得很长。" rows={3} /></label>)}
                 </div>
-                {grades[activeLesson.id] && <GradeCard grade={grades[activeLesson.id]} questions={activeLesson.questions} />}
+                {grades[activeLesson.id] && <><GradeCard grade={grades[activeLesson.id]} questions={activeLesson.questions} /><SaveFeedback title={`${activeLesson.title} · 测验反馈`} source={`课程：${program?.title} / ${activeLesson.id}`} content={`学习主题：${activeLesson.title}\n评分方式：${grades[activeLesson.id].gradedBy}\n得分：${grades[activeLesson.id].score}\n${grades[activeLesson.id].summary}\n下一步：${grades[activeLesson.id].nextStep}\n\n${grades[activeLesson.id].feedback.map(item => { const question = activeLesson.questions.find(q => q.id === item.questionId); return `问题：${question?.prompt || item.questionId}\n当时回答：${gradedAnswers[activeLesson.id]?.[item.questionId] || '未作答'}\n反馈：${item.feedback}\n评分参考：${item.reference}`; }).join('\n\n')}`} /></>}
               </section>
             </article>
           </div>
